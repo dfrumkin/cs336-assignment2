@@ -1,0 +1,21 @@
+{
+  "python.analysis.typeCheckingMode": "basic",
+  "python.testing.pytestArgs": [
+    "."
+  ],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+
+  // Top-level (extension) settings
+  "ruff.enable": true,  // requires VSCode ruff extension
+
+  // Python-only editor behavior
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",        // only on manual save
+      "source.organizeImports.ruff": "explicit"
+    }
+  }
+}

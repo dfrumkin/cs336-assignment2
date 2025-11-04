@@ -1,0 +1,4 @@
+d_model: 1600
+d_ff: 6400
+num_layers: 48
+num_heads: 25

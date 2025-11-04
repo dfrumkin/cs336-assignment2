@@ -1,0 +1,17 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0   # check latest
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^cs336_systems/.*\.py$
+        exclude: ^cs336_basics/.*\.py$
+
+      - id: ruff-format
+        files: ^cs336_systems/.*\.py$
+        exclude: ^cs336_basics/.*\.py$
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.6.1
+    hooks:
+      - id: nbstripout
+

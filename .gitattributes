@@ -1,0 +1,5 @@
+# Tell Git to use the nbdime diff driver for notebooks
+*.ipynb diff=jupyternotebook
+
+
+*.ipynb	merge=jupyternotebook
