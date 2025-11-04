@@ -1,0 +1,87 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fontspec}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{float}
+
+% Configure listings (no box, no line numbers)
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{red},
+  showstringspaces=false,
+  frame=none,                % no box
+  breaklines=false,          % don't allow line breaks
+  keepspaces=true,
+  aboveskip=1em,
+  belowskip=1em
+}
+
+% Optional: to prevent page breaking manually
+\newenvironment{tightcode}
+  {\par\noindent\vspace{1ex}\begin{minipage}{\linewidth}}
+  {\end{minipage}\vspace{1ex}}
+
+\title{CS336 Assignment 2}
+\author{Dmitry Frumkin}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\setcounter{section}{1}
+\setcounter{subsection}{0}
+
+\subsection{Profiling and Benchmarking}
+\subsubsection*{Problem (benchmarking\_script)}
+\subsubsection*{Problem (nsys\_profile)}
+\subsubsection*{Problem (mixed\_precision\_accumulation)}
+\subsubsection*{Problem (benchmarking\_mixed\_precision)}
+\subsubsection*{Problem (memory\_profiling)}
+
+\subsection{Optimizing Attention with FlashAttention-2}
+\subsubsection*{Problem (pytorch\_attention)}
+
+\subsection{Benchmarking JIT-Compiled Attention}
+\subsubsection*{Problem (torch\_compile)}
+\subsubsection*{Problem (flash\_forward)}
+\subsubsection*{Problem (flash\_backward)}
+\subsubsection*{Problem (flash\_benchmarking)}
+
+\setcounter{section}{2}
+\setcounter{subsection}{0}
+
+\subsection{Single-Node Distributed Communication in PyTorch}
+\subsubsection*{Problem (distributed\_communication\_single\_node)}
+
+\subsection{A Naïve Implementation of Distributed Data Parallel Training}
+\subsubsection*{Problem (naive\_ddp)}
+\subsubsection*{Problem (naive\_ddp\_benchmarking)}
+
+\subsection{Improving Upon the Minimal DDP Implementation}
+\subsubsection*{Problem (minimal\_ddp\_flat\_benchmarking)}
+\subsubsection*{Problem (ddp\_overlap\_individual\_parameters)}
+\subsubsection*{Problem (ddp\_overlap\_individual\_parameters\_benchmarking)}
+\subsubsection*{Problem (ddp\_overlap\_bucketed)}
+\subsubsection*{Problem (ddp\_bucketed\_benchmarking)}
+
+\subsection{4D Parallelism}
+\subsubsection*{Problem (communication\_accounting)}
+
+{
+\renewcommand{\thesubsection}{3}
+\subsection{Optimizer State Sharding}
+}
+
+\subsubsection*{Problem (optimizer\_state\_sharding)}
+\subsubsection*{Problem (optimizer\_state\_sharding\_accounting)}
+
+\end{document}
