@@ -35,6 +35,11 @@ def get_rand_tokens(cfg: DictConfig) -> Int[Tensor, "batch_length sequence_lengt
 
 
 def get_sweep_params() -> dict[str, str]:
+    """Get overridden hydra parameters to describe the sweep job
+
+    Returns:
+        dict[str, str]: Parameter names and values as strings
+    """
     task_overrides = HydraConfig.get().overrides.task
     out: dict[str, str] = {}
     for s in task_overrides:
@@ -52,7 +57,7 @@ def calc_statistics(times: list[float], name: str) -> dict[str, float]:
 
 @main(config_path="conf", config_name="benchmark", version_base=None)
 def run(cfg: DictConfig) -> None:
-    # Get config
+    # Get overridden parameters (normally, from a hydra sweep run)
     results: dict[str, str | float] = get_sweep_params()  # type: ignore
     print(f"Starting: {results}")
 
@@ -85,6 +90,7 @@ def run(cfg: DictConfig) -> None:
         # Compute statistics
         results.update(calc_statistics(times, "forward_only"))
     else:
+        # Timing forward (including loss) and backward passes for training
         targets = get_rand_tokens(cfg)
         forw_times = []
         back_times = []
@@ -120,7 +126,7 @@ def run(cfg: DictConfig) -> None:
         results.update(calc_statistics(forw_times, "forward"))
         results.update(calc_statistics(back_times, "backward"))
 
-    # Write outputs
+    # Write statistics into a CSV file shared among hydra sweep jobs (run sequentially)
     job_dir = Path(HydraConfig.get().runtime.output_dir)
     sweep_root = job_dir.parent
     csv_path = sweep_root / "results.csv"
