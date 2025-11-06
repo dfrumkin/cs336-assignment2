@@ -1,5 +1,6 @@
 import csv
 import statistics
+import subprocess
 from pathlib import Path
 from timeit import default_timer
 
@@ -12,23 +13,8 @@ from jaxtyping import Int
 from omegaconf import DictConfig
 from torch import Tensor
 
-if torch.cuda.is_available():
-    device = torch.device("cuda")
-    sync = torch.cuda.synchronize
-    backend = "inductor"
-elif torch.mps.is_available():
-    device = torch.device("mps")
-    sync = torch.mps.synchronize
-    backend = "aot_eager"
-else:
-    device = torch.device("cpu")
-    backend = "eager"
 
-    def sync():
-        return None
-
-
-def get_rand_tokens(cfg: DictConfig) -> Int[Tensor, "batch_length sequence_length"]:
+def get_rand_tokens(cfg: DictConfig, device: torch.device) -> Int[Tensor, "batch_length sequence_length"]:
     return torch.randint(
         low=0, high=cfg.model.vocab_size, size=(cfg.batch_size, cfg.model.context_length), device=device
     )
@@ -55,8 +41,50 @@ def calc_statistics(times: list[float], name: str) -> dict[str, float]:
     return {f"{name}_mean": mean, f"{name}_std": std}
 
 
+def reset_cuda_driver():
+    """Attempt to cold-reset NVIDIA driver; skip silently if unavailable."""
+    try:
+        # Quick check: does `nvidia-smi` exist and see a GPU?
+        result = subprocess.run(["nvidia-smi"], capture_output=True, text=True)
+        if result.returncode != 0:
+            print("No NVIDIA driver or GPU found — skipping reset.")
+            return
+
+        print("Resetting NVIDIA driver...")
+        subprocess.run(
+            "modprobe -r nvidia_uvm nvidia_drm nvidia_modeset nvidia",
+            shell=True,
+            check=True,
+        )
+        subprocess.run("modprobe nvidia", shell=True, check=True)
+        print("Driver reloaded successfully.")
+
+    except Exception as e:
+        print(f"Skipping CUDA reset ({type(e).__name__}: {e})")
+
+
 @main(config_path="conf", config_name="benchmark", version_base=None)
 def run(cfg: DictConfig) -> None:
+    # Start from a cold state
+    # Assume that this is enough and we already have compiled kernels
+    reset_cuda_driver()
+
+    # Configuration - must be done after CUDA reset
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        sync = torch.cuda.synchronize
+        backend = "inductor"
+    elif torch.mps.is_available():
+        device = torch.device("mps")
+        sync = torch.mps.synchronize
+        backend = "aot_eager"
+    else:
+        device = torch.device("cpu")
+        backend = "eager"
+
+        def sync():
+            return None
+
     # Get overridden parameters (normally, from a hydra sweep run)
     results: dict[str, str | float] = get_sweep_params()  # type: ignore
     print(f"Starting: {results}")
@@ -65,7 +93,7 @@ def run(cfg: DictConfig) -> None:
     model = instantiate(cfg.model).to(device)
     if cfg.compile:
         model = torch.compile(model, backend=backend)
-    inputs = get_rand_tokens(cfg)
+    inputs = get_rand_tokens(cfg, device)
 
     if cfg.forward_only:
         times = []
@@ -91,7 +119,7 @@ def run(cfg: DictConfig) -> None:
         results.update(calc_statistics(times, "forward_only"))
     else:
         # Timing forward (including loss) and backward passes for training
-        targets = get_rand_tokens(cfg)
+        targets = get_rand_tokens(cfg, device)
         forw_times = []
         back_times = []
 

@@ -7,6 +7,11 @@
 \usepackage{amsmath}
 \usepackage{hyperref}
 \usepackage{float}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{textgreek}
+
+\captionsetup{labelformat=empty}
 
 % Configure listings (no box, no line numbers)
 \lstset{
@@ -42,6 +47,8 @@
 
 \subsection{Profiling and Benchmarking}
 \subsubsection*{Problem (benchmarking\_script)}
+\input{tables/benchmark.tex}
+
 \subsubsection*{Problem (nsys\_profile)}
 \subsubsection*{Problem (mixed\_precision\_accumulation)}
 \subsubsection*{Problem (benchmarking\_mixed\_precision)}
