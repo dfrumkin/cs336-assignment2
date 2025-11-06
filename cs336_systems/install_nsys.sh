@@ -6,7 +6,7 @@ mkdir -p tools && cd tools
 wget https://developer.download.nvidia.com/devtools/nsight-systems/NsightSystems-linux-public-2025.5.1.121-3638078.run
 
 # 3. Make it executable
-chmod +x nsight-systems-linux-public-*.run
+chmod +x NsightSystems-linux-public-*.run
 
 # 4. Extract it (non-root, local install)
 ./nsight-systems-linux-public-*.run --target ~/tools/nsight-systems --extract-only
