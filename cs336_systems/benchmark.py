@@ -44,10 +44,14 @@ def calc_statistics(times: list[float], name: str) -> dict[str, float]:
 def reset_gpu():
     print("Trying GPU reset...")
     try:
-        subprocess.run(["nvidia-smi", "--gpu-reset"], capture_output=True, text=True, check=True)
+        subprocess.run(["nvidia-smi", "--gpu-reset"], capture_output=True, text=True, check=True, shell=True)
         print("GPU reset successfully!")
     except subprocess.CalledProcessError as e:
-        print(f"Skipping GPU reset ({type(e).__name__}: {e})")
+        if torch.cuda.is_available():
+            print(f"GPU reset failed! Code {e.returncode}")
+            print("Error output:", e.stderr)
+            raise e
+        print("Skipping GPU reset: no CUDA")
 
 
 @main(config_path="conf", config_name="benchmark", version_base=None)
