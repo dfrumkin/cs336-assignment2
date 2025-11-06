@@ -3,7 +3,7 @@ cd ~
 mkdir -p tools && cd tools
 
 # 2. Download the latest Nsight Systems .run installer (example version)
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/nsight-systems-linux-public-2024.3.1.112-33147281.run
+wget https://chatgpt.com/c/690c9bb4-75f4-8326-a70b-2a85a72b27c4#:~:text=can%20download%3A%0Ahttps%3A/-,/,-developer.download.nvidia
 
 # 3. Make it executable
 chmod +x nsight-systems-linux-public-*.run
