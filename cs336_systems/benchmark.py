@@ -5,6 +5,7 @@ from pathlib import Path
 from timeit import default_timer
 
 import torch
+import torch.cuda.nvtx as nvtx
 from cs336_basics.nn_utils import cross_entropy  # type: ignore
 from hydra import main
 from hydra.core.hydra_config import HydraConfig
@@ -85,6 +86,15 @@ def run(cfg: DictConfig) -> None:
         model = torch.compile(model, backend=backend)
     inputs = get_rand_tokens(cfg, device)
 
+    # Instantiate optimizer
+    embedding = [model.embedding.weight]  # type: ignore
+    others = [p for p in model.parameters() if p is not model.embedding.weight]  # type: ignore
+    params = [
+        {"params": others, "weight_decay": 0.1},
+        {"params": embedding, "weight_decay": 0.0},
+    ]
+    optimizer = instantiate(cfg.optimizer, params=params)
+
     if cfg.forward_only:
         times = []
         # Timing forward pass for inference (no gradients)
@@ -98,7 +108,8 @@ def run(cfg: DictConfig) -> None:
             for _ in range(cfg.num_measurement_steps):
                 # Time: forward pass & sync
                 t0 = default_timer()
-                model(inputs)
+                with nvtx.range("forward_only"):
+                    model(inputs)
                 sync()
                 t1 = default_timer()
 
@@ -128,17 +139,23 @@ def run(cfg: DictConfig) -> None:
 
             # Time: forward pass, loss, backward pass & sync
             t0 = default_timer()
-            logits = model(inputs)
-            loss = cross_entropy(logits, targets)
+            with nvtx.range("forward"):
+                logits = model(inputs)
+                loss = cross_entropy(logits, targets)
             sync()
             t1 = default_timer()
-            loss.backward()
+            with nvtx.range("backward"):
+                loss.backward()
             sync()
             t2 = default_timer()
 
             # Collect timing data
             forw_times.append(t1 - t0)
             back_times.append(t2 - t1)
+
+            # Optimizer step
+            with nvtx.range("optimizer"):
+                optimizer.step()
 
         # Compute statistics
         results.update(calc_statistics(forw_times, "forward"))
