@@ -1,19 +1,21 @@
-# 1. Go to your persistent storage (e.g. /home/ubuntu or /mnt)
-cd ~
-mkdir -p tools && cd tools
+# Create a tools dir in persistent storage
+cd ~/tools || mkdir -p ~/tools && cd ~/tools
 
-# 2. Download the latest Nsight Systems .run installer (example version)
-wget https://developer.download.nvidia.com/devtools/nsight-systems/NsightSystems-linux-public-2025.5.1.121-3638078.run
+# Fetch the latest Nsight Systems .run URL automatically
+NSYS_URL=$(curl -s https://developer.download.nvidia.com/devtools/nsight-systems/ \
+  | grep -o 'https[^"]*NsightSystems-linux-public-[^"]*\.run' \
+  | sort -V | tail -n1)
 
-# 3. Make it executable
-chmod +x NsightSystems-linux-public-*.run
+echo "Latest Nsight Systems installer: $NSYS_URL"
 
-# 4. Extract it (non-root, local install)
-./nsight-systems-linux-public-*.run --target ~/tools/nsight-systems --extract-only
+# Download and install to a persistent folder
+wget -O nsys.run "$NSYS_URL"
+chmod +x nsys.run
+./nsys.run --target ~/tools/nsight-systems --extract-only
 
-# 5. Add to PATH permanently
-echo 'export PATH=$HOME/tools/nsight-systems/target-linux-x64/bin:$PATH' >> ~/.bashrc
+# Add to PATH (only once)
+grep -q "nsight-systems" ~/.bashrc || echo 'export PATH=$HOME/tools/nsight-systems/target-linux-x64/bin:$PATH' >> ~/.bashrc
 source ~/.bashrc
 
-# 6. Verify
+# Verify
 nsys --version
