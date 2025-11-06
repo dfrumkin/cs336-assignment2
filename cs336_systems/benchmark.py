@@ -41,33 +41,19 @@ def calc_statistics(times: list[float], name: str) -> dict[str, float]:
     return {f"{name}_mean": mean, f"{name}_std": std}
 
 
-def reset_cuda_driver():
-    """Attempt to cold-reset NVIDIA driver; skip silently if unavailable."""
+def reset_gpu():
+    print("Trying GPU reset...")
     try:
-        # Quick check: does `nvidia-smi` exist and see a GPU?
-        result = subprocess.run(["nvidia-smi"], capture_output=True, text=True)
-        if result.returncode != 0:
-            print("No NVIDIA driver or GPU found — skipping reset.")
-            return
-
-        print("Resetting NVIDIA driver...")
-        subprocess.run(
-            "modprobe -r nvidia_uvm nvidia_drm nvidia_modeset nvidia",
-            shell=True,
-            check=True,
-        )
-        subprocess.run("modprobe nvidia", shell=True, check=True)
-        print("Driver reloaded successfully.")
-
-    except Exception as e:
-        print(f"Skipping CUDA reset ({type(e).__name__}: {e})")
+        subprocess.run(["nvidia-smi", "--gpu-reset"], capture_output=True, text=True, check=True)
+        print("GPU reset successfully!")
+    except subprocess.CalledProcessError as e:
+        print(f"Skipping GPU reset ({type(e).__name__}: {e})")
 
 
 @main(config_path="conf", config_name="benchmark", version_base=None)
 def run(cfg: DictConfig) -> None:
     # Start from a cold state
-    # Assume that this is enough and we already have compiled kernels
-    reset_cuda_driver()
+    reset_gpu()
 
     # Configuration - must be done after CUDA reset
     if torch.cuda.is_available():
