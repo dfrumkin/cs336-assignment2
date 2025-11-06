@@ -1,0 +1,279 @@
+\begin{table}[H]
+\caption{small 128}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 102.6 ± 246.736 ms & 152.2 ± 322.945 ms & 110.2 ± 196.496 ms \\
+1 & 24.4 ± 0.248 ms & 34.2 ± 3.794 ms & 43.7 ± 3.025 ms \\
+2 & 24.4 ± 0.167 ms & 34.6 ± 2.814 ms & 43.0 ± 1.312 ms \\
+5 & 24.0 ± 0.072 ms & 38.6 ± 3.772 ms & 44.0 ± 2.632 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{small 256}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 35.9 ± 37.121 ms & 49.2 ± 38.016 ms & 47.1 ± 8.117 ms \\
+1 & 24.4 ± 0.155 ms & 33.7 ± 2.921 ms & 43.3 ± 3.081 ms \\
+2 & 24.3 ± 0.124 ms & 33.5 ± 2.773 ms & 42.2 ± 0.897 ms \\
+5 & 24.1 ± 0.207 ms & 39.6 ± 3.278 ms & 42.2 ± 0.332 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{small 512}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 38.6 ± 36.010 ms & 45.3 ± 39.388 ms & 57.6 ± 3.594 ms \\
+1 & 27.2 ± 0.125 ms & 34.2 ± 1.387 ms & 56.3 ± 0.488 ms \\
+2 & 27.3 ± 0.117 ms & 34.0 ± 3.100 ms & 56.3 ± 0.319 ms \\
+5 & 27.2 ± 0.093 ms & 32.9 ± 1.104 ms & 56.2 ± 0.088 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{small 1024}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 73.5 ± 37.531 ms & 74.7 ± 35.548 ms & 126.7 ± 1.076 ms \\
+1 & 61.9 ± 0.063 ms & 63.5 ± 0.680 ms & 127.0 ± 1.173 ms \\
+2 & 61.3 ± 0.156 ms & 63.8 ± 0.930 ms & 127.4 ± 1.493 ms \\
+5 & 61.7 ± 1.043 ms & 64.0 ± 0.778 ms & 127.5 ± 1.512 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{medium 128}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 53.4 ± 13.535 ms & 60.1 ± 18.704 ms & 68.6 ± 16.136 ms \\
+1 & 48.6 ± 0.469 ms & 58.1 ± 8.031 ms & 67.2 ± 7.412 ms \\
+2 & 47.6 ± 0.237 ms & 61.5 ± 1.225 ms & 64.4 ± 3.629 ms \\
+5 & 47.9 ± 0.346 ms & 61.8 ± 0.729 ms & 64.8 ± 2.528 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{medium 256}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 53.0 ± 13.543 ms & 65.5 ± 13.513 ms & 87.5 ± 10.010 ms \\
+1 & 48.4 ± 0.428 ms & 61.1 ± 1.618 ms & 84.2 ± 0.483 ms \\
+2 & 48.3 ± 0.343 ms & 60.9 ± 0.888 ms & 84.2 ± 0.480 ms \\
+5 & 48.1 ± 0.098 ms & 60.7 ± 0.811 ms & 84.7 ± 0.585 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{medium 512}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 87.5 ± 13.460 ms & 90.8 ± 12.492 ms & 170.5 ± 3.898 ms \\
+1 & 82.8 ± 1.488 ms & 86.7 ± 1.144 ms & 170.7 ± 3.311 ms \\
+2 & 83.6 ± 1.644 ms & 87.0 ± 1.638 ms & 171.7 ± 3.862 ms \\
+5 & 85.2 ± 2.301 ms & 87.0 ± 0.925 ms & 171.2 ± 2.655 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{medium 1024}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 188.4 ± 6.348 ms & 194.4 ± 11.046 ms & 382.0 ± 4.829 ms \\
+1 & 187.2 ± 4.308 ms & 191.4 ± 2.789 ms & 384.0 ± 4.313 ms \\
+2 & 188.6 ± 4.217 ms & 193.2 ± 2.702 ms & 384.1 ± 4.491 ms \\
+5 & 189.4 ± 3.466 ms & 193.2 ± 1.587 ms & 385.1 ± 2.327 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{large 128}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 46.8 ± 9.548 ms & 96.4 ± 15.220 ms & 103.2 ± 14.702 ms \\
+1 & 44.1 ± 1.171 ms & 55.2 ± 8.828 ms & 97.3 ± 0.684 ms \\
+2 & 44.3 ± 1.150 ms & 58.2 ± 12.861 ms & 97.8 ± 0.610 ms \\
+5 & 44.0 ± 0.567 ms & 64.9 ± 16.638 ms & 99.4 ± 4.941 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{large 256}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 91.9 ± 13.390 ms & 93.5 ± 6.947 ms & 180.0 ± 4.504 ms \\
+1 & 88.3 ± 2.222 ms & 90.6 ± 3.008 ms & 179.4 ± 4.045 ms \\
+2 & 88.4 ± 2.566 ms & 91.8 ± 2.742 ms & 180.0 ± 3.863 ms \\
+5 & 89.5 ± 2.770 ms & 91.1 ± 2.368 ms & 178.9 ± 2.677 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{large 512}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 169.1 ± 7.198 ms & 172.4 ± 6.147 ms & 351.3 ± 2.707 ms \\
+1 & 167.2 ± 4.379 ms & 171.5 ± 3.281 ms & 352.3 ± 1.536 ms \\
+2 & 168.0 ± 4.551 ms & 172.3 ± 3.487 ms & 352.1 ± 1.440 ms \\
+5 & 171.0 ± 4.282 ms & 172.9 ± 3.040 ms & 353.1 ± 0.842 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{large 1024}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 396.0 ± 13.593 ms & 403.4 ± 10.882 ms & 815.8 ± 1.243 ms \\
+1 & 393.2 ± 6.629 ms & 400.8 ± 4.225 ms & 815.4 ± 2.527 ms \\
+2 & 394.9 ± 5.494 ms & 402.7 ± 3.333 ms & 818.4 ± 2.278 ms \\
+5 & 395.4 ± 4.079 ms & 405.0 ± 2.002 ms & 820.8 ± 1.692 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{xl 128}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 82.1 ± 7.323 ms & 87.8 ± 9.464 ms & 185.9 ± 8.095 ms \\
+1 & 96.8 ± 0.546 ms & 92.3 ± 11.413 ms & 183.5 ± 3.187 ms \\
+2 & 79.3 ± 1.152 ms & 122.2 ± 2.762 ms & 181.2 ± 0.335 ms \\
+5 & 96.9 ± 0.425 ms & 121.7 ± 0.926 ms & 182.2 ± 0.827 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{xl 256}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 159.7 ± 12.572 ms & 162.7 ± 12.018 ms & 334.1 ± 4.455 ms \\
+1 & 155.0 ± 4.233 ms & 160.0 ± 3.298 ms & 334.3 ± 2.976 ms \\
+2 & 155.9 ± 3.814 ms & 159.5 ± 2.971 ms & 334.2 ± 2.520 ms \\
+5 & 158.5 ± 3.520 ms & 159.6 ± 1.943 ms & 334.9 ± 1.335 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{xl 512}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 330.8 ± 7.189 ms & 338.3 ± 2.728 ms & 682.3 ± 4.567 ms \\
+1 & 329.8 ± 6.002 ms & 336.8 ± 2.989 ms & 684.9 ± 3.852 ms \\
+2 & 330.9 ± 5.083 ms & 336.7 ± 2.443 ms & 685.8 ± 1.611 ms \\
+5 & 331.1 ± 4.557 ms & 337.1 ± 0.746 ms & 685.8 ± 2.263 ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{xl 1024}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 747.8 ± 6.460 ms & OOM & OOM \\
+1 & 747.8 ± 3.741 ms & OOM & OOM \\
+2 & 748.4 ± 3.014 ms & OOM & OOM \\
+5 & 751.9 ± 2.029 ms & OOM & OOM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{2.7B 128}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 131.5 ± 9.775 ms & OOM & OOM \\
+1 & 128.2 ± 4.355 ms & OOM & OOM \\
+2 & 128.0 ± 4.658 ms & OOM & OOM \\
+5 & 127.6 ± 4.384 ms & OOM & OOM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{2.7B 256}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 243.4 ± 18.224 ms & OOM & OOM \\
+1 & 237.7 ± 7.375 ms & OOM & OOM \\
+2 & 238.1 ± 6.333 ms & OOM & OOM \\
+5 & 238.9 ± 5.518 ms & OOM & OOM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{2.7B 512}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 498.6 ± 9.691 ms & OOM & OOM \\
+1 & 498.2 ± 8.167 ms & OOM & OOM \\
+2 & 499.4 ± 8.183 ms & OOM & OOM \\
+5 & 499.1 ± 4.962 ms & OOM & OOM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{2.7B 1024}
+\begin{tabular}{rlll}
+\toprule
+warmup & forward infer ($\mu \pm \sigma$) & forward train ($\mu \pm \sigma$) & backward  ($\mu \pm \sigma$) \\
+\midrule
+0 & 1044.4 ± 11.030 ms & OOM & OOM \\
+1 & 1043.2 ± 2.022 ms & OOM & OOM \\
+2 & 1045.4 ± 1.675 ms & OOM & OOM \\
+5 & 1047.5 ± 1.702 ms & OOM & OOM \\
+\bottomrule
+\end{tabular}
+\end{table}

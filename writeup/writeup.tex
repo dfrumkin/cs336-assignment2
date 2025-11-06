@@ -47,6 +47,49 @@
 
 \subsection{Profiling and Benchmarking}
 \subsubsection*{Problem (benchmarking\_script)}
+
+\begin{enumerate}[label=(\alph*)]
+\item \textbf{Write a script to perform basic end-to-end benchmarking of the forward and backward passes in
+your model.}
+
+\textbf{Code:} \texttt{cs336\_systems/benchmark.py}, \texttt{cs336\_systems/benchmark.sh}, \texttt{cs336\_systems/benchmark.ipynb}
+
+In this and subsequent problems I used an H-100 via \href{https://lambda.ai/}{lambda.ai} and hydra to run
+hyperparameter sweeps.  Here, the sweeps were over (model size, context window size, number of warmup iterations).
+Two sweeps were run:
+
+\begin{itemize}
+\item training: forward pass (including loss computation) and backward pass;
+\item inference: forward pass in inference mode.
+\end{itemize}
+
+Every benchmark run within each sweep is a separate process.  For cleaner results, I reset the GPU in the beginning of every run.
+The set-up is probably different from what Stanford students had.
+
+The difference between inference and training forward passes is minimal, except for the much larger memory 
+footprint during training, which resulted in the larger models running out of memory in training.
+
+\item \textbf{Time the forward and backward passes for the model sizes described in §1.1.2. Use 5 warmup
+steps and compute the average and standard deviation of timings over 10 measurement steps.
+How long does a forward pass take? How about a backward pass? Do you see high variability
+across measurements, or is the standard deviation small?}
+
+The backward takes longer than the forward pass, and the difference is more pronounced for larger models ($2 \times$).
+Computation expectedly takes longer for larger models and larger contexts (scaling linearly with the context length).
+The standard deviation is generally small, though it was for some reason unusually high for the large model with the context length of 128.
+
+\item \textbf{One caveat of benchmarking is not performing the warm-up steps. Repeat your analysis without
+the warm-up steps. How does this affect your results? Why do you think this happens? Also try
+to run the script with 1 or 2 warm-up steps. Why might the result still be different?}
+
+Without warm-up, the running time as well as the standard deviation are much higher.  Particularly affected
+are the first runs of training and inference sweeps (small model, context 128, warm-up 0): most likely there
+is some extra initialization for the new task even though we reset the GPU every time.  In general, increasing the number
+of warmup steps led to a smaller standard deviation, but not always.  Having more warmup steps helps because
+there is some intentional lazy initialization and auto-tuning (different behavior for frequent vs. one-off tasks).
+
+\end{enumerate}
+
 \input{tables/benchmark.tex}
 
 \subsubsection*{Problem (nsys\_profile)}
