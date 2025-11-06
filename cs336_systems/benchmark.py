@@ -87,8 +87,8 @@ def run(cfg: DictConfig) -> None:
     inputs = get_rand_tokens(cfg, device)
 
     # Instantiate optimizer
-    embedding = [model.embedding.weight]  # type: ignore
-    others = [p for p in model.parameters() if p is not model.embedding.weight]  # type: ignore
+    embedding = [model.token_embeddings.weight]  # type: ignore
+    others = [p for p in model.parameters() if p is not model.token_embeddings.weight]  # type: ignore
     params = [
         {"params": others, "weight_decay": 0.1},
         {"params": embedding, "weight_decay": 0.0},
