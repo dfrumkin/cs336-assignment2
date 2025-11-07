@@ -14,8 +14,6 @@ for fwd in "${forward_only[@]}"; do
     for c in "${ctx[@]}"; do
       out="${TRACE_DIR}/trace_fwd=${fwd}_m=${m}_ctx=${c}"
       nsys profile \
-        --capture-range=nvtx --capture-range-end=stop \
-        --sample=none --backtrace=none --gpu-metrics-devices=none \
         -o "$out" -- \
         "$PY" benchmark.py \
         forward_only="$fwd" model="$m" model.context_length="$c"
