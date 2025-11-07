@@ -133,6 +133,22 @@ fourth cases (equivalent: implicit or explicity upcasting to float32) we get onl
 0.01 in float16, but lower error from addition.
 
 \subsubsection*{Problem (benchmarking\_mixed\_precision)}
+
+\begin{enumerate}[label=(\alph*)]
+
+    \item Parameters and gradients are always in float32 for reasons demonstrated in the previous problem.  
+    Activations are computed in float16 for linear layers (fc1, fc2) and relu, but float32 for LayerNorm.
+    Logits are activations of fc2 (float16) and the loss is float32 because it's usually numerically sensitive (MSE, Cross-Entropy), but could in theory be float16 (e.g. if we take the maximum).
+
+    \item LayerNorm contains sensitive operations: accumulations (mean, standard deviation), epsilon addition and square root.
+    While bfloat16 would help avoid over- and underflows, it has fewer bits for the mantissa leading to loss in precision.  
+    Therefore, we always use float32 for LayerNorm. In theory, hardware could fuse LayerNorm computations to 
+    produce float16/bfloat16 activations, but the benefits would be much smaller than from the fused matmul.
+
+    \item \textbf{TODO}
+
+\end{enumerate}
+
 \subsubsection*{Problem (memory\_profiling)}
 
 \subsection{Optimizing Attention with FlashAttention-2}
