@@ -1,6 +1,7 @@
 import csv
 import statistics
 import subprocess
+from contextlib import nullcontext
 from pathlib import Path
 from timeit import default_timer
 
@@ -86,6 +87,9 @@ def run(cfg: DictConfig) -> None:
         model = torch.compile(model, backend=backend)
     inputs = get_rand_tokens(cfg, device)
 
+    # Mixed precision
+    context = torch.autocast(device_type=device.type, dtype=torch.bfloat16) if cfg.mixed else nullcontext()
+
     # Instantiate optimizer
     embedding = [model.token_embeddings.weight]  # type: ignore
     others = [p for p in model.parameters() if p is not model.token_embeddings.weight]  # type: ignore
@@ -98,7 +102,7 @@ def run(cfg: DictConfig) -> None:
     if cfg.forward_only:
         times = []
         # Timing forward pass for inference (no gradients)
-        with torch.inference_mode():
+        with context, torch.inference_mode():
             # Warmup
             for _ in range(cfg.num_warmup_steps):
                 model(inputs)
@@ -124,38 +128,39 @@ def run(cfg: DictConfig) -> None:
         forw_times = []
         back_times = []
 
-        # Warmup
-        for _ in range(cfg.num_warmup_steps):
-            model.zero_grad(set_to_none=True)
-            logits = model(inputs)
-            loss = cross_entropy(logits, targets)
-            loss.backward()
-
-        # Measurements
-        for _ in range(cfg.num_measurement_steps):
-            # zero_grad and sync outside of the timing loop
-            model.zero_grad(set_to_none=True)
-            sync()
-
-            # Time: forward pass, loss, backward pass & sync
-            t0 = default_timer()
-            with nvtx.range("forward"):
+        with context:
+            # Warmup
+            for _ in range(cfg.num_warmup_steps):
+                model.zero_grad(set_to_none=True)
                 logits = model(inputs)
                 loss = cross_entropy(logits, targets)
-            sync()
-            t1 = default_timer()
-            with nvtx.range("backward"):
                 loss.backward()
-            sync()
-            t2 = default_timer()
 
-            # Collect timing data
-            forw_times.append(t1 - t0)
-            back_times.append(t2 - t1)
+            # Measurements
+            for _ in range(cfg.num_measurement_steps):
+                # zero_grad and sync outside of the timing loop
+                model.zero_grad(set_to_none=True)
+                sync()
 
-            # Optimizer step
-            with nvtx.range("optimizer"):
-                optimizer.step()
+                # Time: forward pass, loss, backward pass & sync
+                t0 = default_timer()
+                with nvtx.range("forward"):
+                    logits = model(inputs)
+                    loss = cross_entropy(logits, targets)
+                sync()
+                t1 = default_timer()
+                with nvtx.range("backward"):
+                    loss.backward()
+                sync()
+                t2 = default_timer()
+
+                # Collect timing data
+                forw_times.append(t1 - t0)
+                back_times.append(t2 - t1)
+
+                # Optimizer step
+                with nvtx.range("optimizer"):
+                    optimizer.step()
 
         # Compute statistics
         results.update(calc_statistics(forw_times, "forward"))
