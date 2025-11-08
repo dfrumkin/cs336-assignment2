@@ -14,7 +14,7 @@ warmup=(0 1 2 5)
 for fwd in "${forward_only[@]}"; do
     for m in "${models[@]}"; do
         for c in "${ctx[@]}"; do
-            for w in "${warmup{@}}"; do
+            for w in "${warmup[@]}"; do
                 nvidia-smi --gpu-reset
                 "$PY" benchmark.py \
                     forward_only="$fwd" model="$m" model.context_length="$c" num_warmup_steps="$w"
