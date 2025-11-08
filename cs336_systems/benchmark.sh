@@ -9,7 +9,7 @@ PY=${PYTHON:-"$(which python)"}
 forward_only=(false true)
 models=(small medium large xl "2.7B")
 ctx=(128 256 512 1024)
-num_warmup_steps=(0 1 2 5)
+warmup=(0 1 2 5)
 
 for fwd in "${forward_only[@]}"; do
     for m in "${models[@]}"; do
