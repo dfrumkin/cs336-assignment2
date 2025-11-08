@@ -15,7 +15,7 @@ for fwd in "${forward_only[@]}"; do
     for m in "${models[@]}"; do
         for c in "${ctx[@]}"; do
             for w in "${warmup[@]}"; do
-                nvidia-smi --gpu-reset
+                sudo nvidia-smi --gpu-reset
                 "$PY" benchmark.py \
                     forward_only="$fwd" model="$m" model.context_length="$c" num_warmup_steps="$w"
             done
@@ -23,4 +23,4 @@ for fwd in "${forward_only[@]}"; do
     done
 done
 
-# sudo nvidia-smi -pm 1   # turn persistence mode ON - if it was on
+# sudo nvidia-smi -pm 1   # turn persistence mode ON - if it was on to begin with
