@@ -1,9 +1,10 @@
 import csv
 import statistics
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from timeit import default_timer
 
+import cs336_basics
 import torch
 import torch.cuda.nvtx as nvtx
 from cs336_basics.nn_utils import cross_entropy  # type: ignore
@@ -11,21 +12,22 @@ from hydra import main
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
 from jaxtyping import Int
+from model_patch import annotated_scaled_dot_product_attention
 from omegaconf import DictConfig
 from torch import Tensor
+
+# Monkey-patch for annotated scaled dot-product attention
+cs336_basics.model.scaled_dot_product_attention = annotated_scaled_dot_product_attention
 
 # Configuration
 if torch.cuda.is_available():
     device = torch.device("cuda")
     sync = torch.cuda.synchronize
-    backend = "inductor"
 elif torch.mps.is_available():
     device = torch.device("mps")
     sync = torch.mps.synchronize
-    backend = "aot_eager"
 else:
     device = torch.device("cpu")
-    backend = "eager"
 
     def sync():
         return None
@@ -61,6 +63,20 @@ def calc_statistics(times: list[float], name: str) -> dict[str, float]:
     return {f"{name}_mean": mean, f"{name}_std": std}
 
 
+@contextmanager
+def profile_memory(filename: str):
+    torch.cuda.memory._record_memory_history(max_entries=1_000_000)
+    try:
+        yield
+    finally:
+        torch.cuda.memory._dump_snapshot(filename + ".pickle")
+        torch.cuda.memory._record_memory_history(enabled=None)
+
+
+def maybe_profile_memory(enabled: bool, filename: str):
+    return profile_memory(filename) if enabled else nullcontext()
+
+
 @main(config_path="conf", config_name="benchmark", version_base=None)
 def run(cfg: DictConfig) -> None:
     # Get overridden parameters
@@ -69,12 +85,10 @@ def run(cfg: DictConfig) -> None:
 
     # Instantiate model and inputs
     model = instantiate(cfg.model).to(device)
-    if cfg.compile:
-        model = torch.compile(model, backend=backend)
     inputs = get_rand_tokens(cfg, device)
 
     # Mixed precision
-    context = torch.autocast(device_type=device.type, dtype=torch.bfloat16) if cfg.mixed else nullcontext()
+    mp_context = torch.autocast(device_type=device.type, dtype=torch.bfloat16) if cfg.mixed_precision else nullcontext()
 
     # Instantiate optimizer
     embedding = [model.token_embeddings.weight]  # type: ignore
@@ -87,10 +101,13 @@ def run(cfg: DictConfig) -> None:
     forw_times = []
     back_times = []
     suffix = "_".join(f"{k}_{v}" for k, v in results.items())
+    forward_name = "forward_" + suffix
+    backward_name = "backward_" + suffix
+    optimizer_name = "optimizer_" + suffix
 
     if cfg.forward_only:
         # Timing forward pass for inference (no gradients)
-        with context, torch.inference_mode():
+        with mp_context, torch.inference_mode():
             # Warmup
             for _ in range(cfg.num_warmup_steps):
                 model(inputs)
@@ -100,7 +117,7 @@ def run(cfg: DictConfig) -> None:
             for _ in range(cfg.num_measurement_steps):
                 # Time: forward pass & sync
                 t0 = default_timer()
-                with nvtx.range(f"forward_{suffix}"):
+                with nvtx.range(forward_name), maybe_profile_memory(cfg.mem_profile, forward_name):
                     model(inputs)
                 sync()
                 t1 = default_timer()
@@ -113,7 +130,7 @@ def run(cfg: DictConfig) -> None:
         forw_times = []
         back_times = []
 
-        with context:
+        with mp_context:
             # Warmup
             for _ in range(cfg.num_warmup_steps):
                 model.zero_grad(set_to_none=True)
@@ -129,7 +146,7 @@ def run(cfg: DictConfig) -> None:
 
                 # Time: forward pass, loss, backward pass & sync
                 t0 = default_timer()
-                with nvtx.range(f"forward_{suffix}"):
+                with nvtx.range(forward_name), maybe_profile_memory(cfg.mem_profile, backward_name):
                     logits = model(inputs)
                     loss = cross_entropy(logits, targets)
                 sync()
@@ -144,7 +161,7 @@ def run(cfg: DictConfig) -> None:
                 back_times.append(t2 - t1)
 
                 # Optimizer step
-                with nvtx.range(f"optimizer_{suffix}"):
+                with nvtx.range(f"optimizer_{suffix}"), maybe_profile_memory(cfg.mem_profile, optimizer_name):
                     optimizer.step()
 
     # Compute statistics
