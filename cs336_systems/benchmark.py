@@ -1,6 +1,5 @@
 import csv
 import statistics
-import subprocess
 from contextlib import nullcontext
 from pathlib import Path
 from timeit import default_timer
@@ -14,6 +13,22 @@ from hydra.utils import instantiate
 from jaxtyping import Int
 from omegaconf import DictConfig
 from torch import Tensor
+
+# Configuration
+if torch.cuda.is_available():
+    device = torch.device("cuda")
+    sync = torch.cuda.synchronize
+    backend = "inductor"
+elif torch.mps.is_available():
+    device = torch.device("mps")
+    sync = torch.mps.synchronize
+    backend = "aot_eager"
+else:
+    device = torch.device("cpu")
+    backend = "eager"
+
+    def sync():
+        return None
 
 
 def get_rand_tokens(cfg: DictConfig, device: torch.device) -> Int[Tensor, "batch_length sequence_length"]:
@@ -38,46 +53,17 @@ def get_sweep_params() -> dict[str, str]:
 
 
 def calc_statistics(times: list[float], name: str) -> dict[str, float]:
-    mean = statistics.mean(times)
-    std = statistics.stdev(times)
+    if times:
+        mean = statistics.mean(times)
+        std = statistics.stdev(times)
+    else:
+        mean = std = 0.0
     return {f"{name}_mean": mean, f"{name}_std": std}
-
-
-def reset_gpu():
-    print("Trying GPU reset...")
-    try:
-        subprocess.run(["nvidia-smi", "--gpu-reset"], capture_output=True, text=True, check=True, shell=True)
-        print("GPU reset successfully!")
-    except subprocess.CalledProcessError as e:
-        if torch.cuda.is_available():
-            print(f"GPU reset failed! Code {e.returncode}")
-            print("Error output:", e.stderr)
-            raise e
-        print("Skipping GPU reset: no CUDA")
 
 
 @main(config_path="conf", config_name="benchmark", version_base=None)
 def run(cfg: DictConfig) -> None:
-    # Start from a cold state
-    reset_gpu()
-
-    # Configuration - must be done after CUDA reset
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        sync = torch.cuda.synchronize
-        backend = "inductor"
-    elif torch.mps.is_available():
-        device = torch.device("mps")
-        sync = torch.mps.synchronize
-        backend = "aot_eager"
-    else:
-        device = torch.device("cpu")
-        backend = "eager"
-
-        def sync():
-            return None
-
-    # Get overridden parameters (normally, from a hydra sweep run)
+    # Get overridden parameters
     results: dict[str, str | float] = get_sweep_params()  # type: ignore
     print(f"Starting: {results}")
 
@@ -98,9 +84,11 @@ def run(cfg: DictConfig) -> None:
         {"params": embedding, "weight_decay": 0.0},
     ]
     optimizer = instantiate(cfg.optimizer, params=params)
+    forw_times = []
+    back_times = []
+    suffix = "_".join(f"{k}_{v}" for k, v in results.items())
 
     if cfg.forward_only:
-        times = []
         # Timing forward pass for inference (no gradients)
         with context, torch.inference_mode():
             # Warmup
@@ -112,16 +100,13 @@ def run(cfg: DictConfig) -> None:
             for _ in range(cfg.num_measurement_steps):
                 # Time: forward pass & sync
                 t0 = default_timer()
-                with nvtx.range("forward_only"):
+                with nvtx.range(f"forward_{suffix}"):
                     model(inputs)
                 sync()
                 t1 = default_timer()
 
                 # Collect timing data
-                times.append(t1 - t0)
-
-        # Compute statistics
-        results.update(calc_statistics(times, "forward_only"))
+                forw_times.append(t1 - t0)
     else:
         # Timing forward (including loss) and backward passes for training
         targets = get_rand_tokens(cfg, device)
@@ -144,12 +129,12 @@ def run(cfg: DictConfig) -> None:
 
                 # Time: forward pass, loss, backward pass & sync
                 t0 = default_timer()
-                with nvtx.range("forward"):
+                with nvtx.range(f"forward_{suffix}"):
                     logits = model(inputs)
                     loss = cross_entropy(logits, targets)
                 sync()
                 t1 = default_timer()
-                with nvtx.range("backward"):
+                with nvtx.range(f"backward_{suffix}"):
                     loss.backward()
                 sync()
                 t2 = default_timer()
@@ -159,17 +144,15 @@ def run(cfg: DictConfig) -> None:
                 back_times.append(t2 - t1)
 
                 # Optimizer step
-                with nvtx.range("optimizer"):
+                with nvtx.range(f"optimizer_{suffix}"):
                     optimizer.step()
 
-        # Compute statistics
-        results.update(calc_statistics(forw_times, "forward"))
-        results.update(calc_statistics(back_times, "backward"))
+    # Compute statistics
+    results.update(calc_statistics(forw_times, "forward"))
+    results.update(calc_statistics(back_times, "backward"))
 
-    # Write statistics into a CSV file shared among hydra sweep jobs (run sequentially)
-    job_dir = Path(HydraConfig.get().runtime.output_dir)
-    sweep_root = job_dir.parent
-    csv_path = sweep_root / "results.csv"
+    # Write statistics
+    csv_path = Path("benchmark_results.csv")
     results = dict(sorted(results.items()))
 
     header = not csv_path.exists()

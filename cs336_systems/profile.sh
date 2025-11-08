@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
 PY=${PYTHON:-"$(which python)"}
