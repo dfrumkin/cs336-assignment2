@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 PY=${PYTHON:-"$(which python)"}
 TRACE_DIR=${TRACE_DIR:-traces}
 mkdir -p "$TRACE_DIR"
