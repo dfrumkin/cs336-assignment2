@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 sudo nvidia-smi -pm 0   # turn persistence mode OFF
 
 PY=${PYTHON:-"$(which python)"}
