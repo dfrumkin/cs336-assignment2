@@ -119,7 +119,7 @@ def run(cfg: DictConfig) -> None:
                 t0 = default_timer()
                 with nvtx.range(forward_name), maybe_profile_memory(cfg.mem_profile, forward_name):
                     model(inputs)
-                sync()
+                    sync()
                 t1 = default_timer()
 
                 # Collect timing data
@@ -149,11 +149,11 @@ def run(cfg: DictConfig) -> None:
                 with nvtx.range(forward_name), maybe_profile_memory(cfg.mem_profile, backward_name):
                     logits = model(inputs)
                     loss = cross_entropy(logits, targets)
-                sync()
+                    sync()
                 t1 = default_timer()
                 with nvtx.range(f"backward_{suffix}"):
                     loss.backward()
-                sync()
+                    sync()
                 t2 = default_timer()
 
                 # Collect timing data
@@ -163,6 +163,7 @@ def run(cfg: DictConfig) -> None:
                 # Optimizer step
                 with nvtx.range(f"optimizer_{suffix}"), maybe_profile_memory(cfg.mem_profile, optimizer_name):
                     optimizer.step()
+                    sync()
 
     # Compute statistics
     results.update(calc_statistics(forw_times, "forward"))
