@@ -26,7 +26,7 @@ for rep_file in "$IN_DIR"/*.nsys-rep; do
     base_name="$(basename "$rep_file" .nsys-rep)"
 
     # Compose output path
-    out_csv="$OUT_DIR/${base_name}.nvtx_sum.csv"
+    out_csv="$OUT_DIR/${base_name}"
 
     echo "==> Generating report for: $rep_file"
     echo "    Output: $out_csv"
