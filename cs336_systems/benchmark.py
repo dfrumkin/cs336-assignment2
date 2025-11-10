@@ -108,6 +108,7 @@ def run(cfg: DictConfig) -> None:
     forward_name = "forward_" + suffix
     backward_name = "backward_" + suffix
     optimizer_name = "optimizer_" + suffix
+    num_mesurement_steps = 1 if cfg.mem_profile else cfg.num_measurement_steps
 
     if cfg.forward_only:
         # Timing forward pass for inference (no gradients)
@@ -118,7 +119,7 @@ def run(cfg: DictConfig) -> None:
             sync()
 
             # Measurements
-            for _ in range(cfg.num_measurement_steps):
+            for _ in range(num_mesurement_steps):
                 # Time: forward pass & sync
                 t0 = default_timer()
                 with nvtx.range(forward_name), maybe_profile_memory(cfg.mem_profile, forward_name):
@@ -143,7 +144,7 @@ def run(cfg: DictConfig) -> None:
                 loss.backward()
 
             # Measurements
-            for _ in range(cfg.num_measurement_steps):
+            for _ in range(num_mesurement_steps):
                 # zero_grad and sync outside of the timing loop
                 model.zero_grad(set_to_none=True)
                 sync()
