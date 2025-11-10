@@ -96,15 +96,15 @@ The forward time matches what we measured earlier (is a little higher).
 times is this kernel invoked during a single forward pass of your model? Is it the same kernel
 that takes the most runtime when you do both forward and backward passes?}
 
-For an xl model with context length 512, ampere_sgemm_128x64_tn (matrix multiplication kernel operating on 128 rows × 64 columns in single precision) 
+For an xl model with context length 512, \texttt{ampere\_sgemm\_128x64\_tn} (matrix multiplication kernel operating on 128 rows × 64 columns in single precision) 
 takes the most time during the forward pass and gets called 52 times.  In the backward pass, the most time is taken by a similar matrix multiplication
-ampere_sgemm_64x32_sliced1x4_nn, but for both steps combined ampere_sgemm_128x64_tn still takes the most time.
+\texttt{ampere\_sgemm\_64x32\_sliced1x4\_nn}, but for both steps combined \texttt{ampere\_sgemm\_128x64\_tn} still takes the most time.
 
     \item \textbf{What other kernels besides matrix multiplies do you see accounting for non-trivial CUDA runtime in the forward
 pass?}
 
-I see elementwise operations, such as multiplication and addition, (at::native::elementwise_kernel and at::native::vectorized_elementwise_kernel) 
-and reductions, such as mean and max (at::native::reduce_kernel).
+I see elementwise operations, such as multiplication and addition, (\texttt{at::native::elementwise\_kernel and at::native::vectorized\_elementwise\_kernel}) 
+and reductions, such as mean and max (\texttt{at::native::reduce\_kernel}).
 
     \item \textbf{Profile running one complete training step with your implementation of AdamW (i.e., the forward
 pass, computing the loss and running a backward pass, and finally an optimizer step, as you’d do
@@ -119,8 +119,11 @@ with 74.2\%, while pointwise operations take a relatively larger share of time.
 the self-attention layer of your model during a forward pass. How does the difference in runtimes
 compare to the difference in FLOPs?}
 
-For an xl model with context length 512, focusing on scaled\_dot\_product\_attention, most of the time (72\%) goes on softmax, where most work
-is done by elementwise kernels, but over scaled\_dot\_product\_attention, 87\% of the time is taken by matrix multiplication kernels.
+For an xl model with context length 512, focusing on \texttt{scaled\_dot\_product\_attention}, softmax takes 714 ns vs 445 ns for computing attention
+scores and 491 ns for the final matrix multiplication.  This is very high given that the fraction of FLOPs taken by softmax is tiny 
+($\sim 512^2$ vs $\sim 1280 \times 512^2$ for the other two operations).  The reason for high running time is that unlike highly optimized
+matrix multiplications, softmax is very memory-bound.
+
 \end{enumerate}
 
 \subsubsection*{Problem (mixed\_precision\_accumulation)}
@@ -164,6 +167,7 @@ fourth cases (equivalent: implicit or explicity upcasting to float32) we get onl
 
 \subsubsection*{Problem (benchmarking\_mixed\_precision)}
 
+
 \begin{enumerate}[label=(\alph*)]
 
     \item Parameters and gradients are always in float32 for reasons demonstrated in the previous problem.  
@@ -175,7 +179,11 @@ fourth cases (equivalent: implicit or explicity upcasting to float32) we get onl
     Therefore, we always use float32 for LayerNorm. In theory, hardware could fuse LayerNorm computations to 
     produce float16/bfloat16 activations, but the benefits would be much smaller than from the fused matmul.
 
-    \item \textbf{TODO}
+    \item Mixed precision did not help with OOM issues on A-100 with 40GB GPU memory (the savings are limited by the factor of 2); however,
+    as the model and the context window sizes increased, we got super-linear savings in running time.  Surprisingly, with mixed precision, 
+    the 2.7B model's inference was faster than that of the xl and even large model at small context window sizes.
+
+    \input{tables/mixed_precision.tex}
 
 \end{enumerate}
 
