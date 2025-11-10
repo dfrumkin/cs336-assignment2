@@ -65,11 +65,15 @@ def calc_statistics(times: list[float], name: str) -> dict[str, float]:
 
 @contextmanager
 def profile_memory(filename: str):
+    root = Path("memory_dump")
+    root.mkdir(exist_ok=True)
+    dump_path = str(root / (filename + ".pickle"))
+
     torch.cuda.memory._record_memory_history(max_entries=1_000_000)
     try:
         yield
     finally:
-        torch.cuda.memory._dump_snapshot(filename + ".pickle")
+        torch.cuda.memory._dump_snapshot(dump_path)
         torch.cuda.memory._record_memory_history(enabled=None)
 
 
