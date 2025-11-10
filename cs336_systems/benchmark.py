@@ -170,20 +170,21 @@ def run(cfg: DictConfig) -> None:
                     optimizer.step()
                     sync()
 
-    # Compute statistics
-    results.update(calc_statistics(forw_times, "forward"))
-    results.update(calc_statistics(back_times, "backward"))
+    if not cfg.mem_profile:
+        # Compute statistics
+        results.update(calc_statistics(forw_times, "forward"))
+        results.update(calc_statistics(back_times, "backward"))
 
-    # Write statistics
-    csv_path = Path("benchmark_results.csv")
-    results = dict(sorted(results.items()))
+        # Write statistics
+        csv_path = Path("benchmark_results.csv")
+        results = dict(sorted(results.items()))
 
-    header = not csv_path.exists()
-    with csv_path.open("a", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=results.keys())
-        if header:
-            writer.writeheader()
-        writer.writerow(results)
+        header = not csv_path.exists()
+        with csv_path.open("a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=results.keys())
+            if header:
+                writer.writeheader()
+            writer.writerow(results)
 
     print(f"Finished: {results}")
 
