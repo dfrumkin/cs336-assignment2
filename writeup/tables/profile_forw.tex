@@ -1,0 +1,15 @@
+\begin{table}[H]
+\caption{Forward infer / train time (ms)}
+\begin{tabular}{lllll}
+\toprule
+Context & 128 & 256 & 512 & 1024 \\
+Model &  &  &  &  \\
+\midrule
+small & 32.2 / 39.0 & 33.2 / 40.2 & 46.6 / 47.6 & 104.3 / 105.8 \\
+medium & 67.3 / 79.0 & 67.7 / 80.6 & 137.6 / 138.9 & 307.6 / 309.3 \\
+large & 97.5 / 118.6 & 142.6 / 143.7 & 285.6 / 287.1 & 649.0 / OOM \\
+xl & 146.8 / 150.7 & 281.3 / 282.5 & 573.1 / 442.5 & 1275.0 / OOM \\
+2.7B & 219.0 / 220.0 & 416.8 / 417.3 & 852.9 / OOM & 1819.4 / OOM \\
+\bottomrule
+\end{tabular}
+\end{table}

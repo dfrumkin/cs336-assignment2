@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Description:
-#   Generate nvtx_sum CSV reports for all .nsys-rep files found in ./traces
-#   and save them under ./reports with matching base names.
-#
-# Usage:
-#   ./make_nvtx_reports.sh
-
 IN_DIR="traces"
 OUT_DIR="reports"
 

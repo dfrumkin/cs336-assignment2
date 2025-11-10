@@ -32,18 +32,22 @@ def annotated_scaled_dot_product_attention(
         with the output of running your scaled dot product attention
         implementation with the provided key, query, and value tensors.
     """
-
+    torch.cuda.synchronize()
     d_k = K.shape[-1]
     with nvtx.range("computing attention scores"):
         attention_scores = einsum(Q, K, "... query d_k, ... key d_k -> ... query key") / math.sqrt(d_k)
+        torch.cuda.synchronize()
 
     if mask is not None:
         attention_scores = torch.where(mask, attention_scores, float("-inf"))
+        torch.cuda.synchronize()
 
     with nvtx.range("computing softmax"):
         attention_weights = softmax(attention_scores, dim=-1)  # Softmax over the key dimension
+        torch.cuda.synchronize()
 
     with nvtx.range("final matmul"):
         final_proj = einsum(attention_weights, V, "... query key, ... key d_v ->  ... query d_v")
+        torch.cuda.synchronize()
 
     return final_proj

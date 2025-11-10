@@ -16,7 +16,7 @@ from model_patch import annotated_scaled_dot_product_attention
 from omegaconf import DictConfig
 from torch import Tensor
 
-# Monkey-patch for annotated scaled dot-product attention
+# Monkey-patch for annotated scaled dot-product attention - only if profiling self-attention!
 cs336_basics.model.scaled_dot_product_attention = annotated_scaled_dot_product_attention
 
 # Configuration

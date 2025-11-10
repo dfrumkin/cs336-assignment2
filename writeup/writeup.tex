@@ -54,37 +54,27 @@ your model.}
 
 \textbf{Code:} \texttt{cs336\_systems/benchmark.py}, \texttt{cs336\_systems/benchmark.sh}, \texttt{cs336\_systems/benchmark.ipynb}
 
-In this and subsequent problems I used an H-100 via \href{https://lambda.ai/}{lambda.ai} and hydra to run
-hyperparameter sweeps.  Here, the sweeps were over (model size, context window size, number of warmup iterations).
-Two sweeps were run:
-
-\begin{itemize}
-\item training: forward pass (including loss computation) and backward pass;
-\item inference: forward pass in inference mode.
-\end{itemize}
-
-Every benchmark run within each sweep is a separate process.  For cleaner results, I reset the GPU in the beginning of every run.
-The set-up is probably different from what Stanford students had.
+In this and subsequent problems I used an A-100 via \href{https://lambda.ai/}{lambda.ai} and performed 
+sweeps over (forward only, model size, context window size, number of warmup iterations).
+Every configuration was a separate process.  For cleaner results, I reset the GPU in the beginning of every run.
 
 The difference between inference and training forward passes is minimal, except for the much larger memory 
-footprint during training, which resulted in the larger models running out of memory in training.
+footprint during training, which resulted in out-of-memory errors for larger models and contexts.
 
 \item \textbf{Time the forward and backward passes for the model sizes described in §1.1.2. Use 5 warmup
 steps and compute the average and standard deviation of timings over 10 measurement steps.
 How long does a forward pass take? How about a backward pass? Do you see high variability
 across measurements, or is the standard deviation small?}
 
-The backward takes longer than the forward pass, and the difference is more pronounced for larger models ($2 \times$).
+The backward takes longer than the forward pass.
 Computation expectedly takes longer for larger models and larger contexts (scaling linearly with the context length).
-The standard deviation is generally small, though it was for some reason unusually high for the large model with the context length of 128.
+The standard deviation is generally small.
 
 \item \textbf{One caveat of benchmarking is not performing the warm-up steps. Repeat your analysis without
 the warm-up steps. How does this affect your results? Why do you think this happens? Also try
 to run the script with 1 or 2 warm-up steps. Why might the result still be different?}
 
-Without warm-up, the running time as well as the standard deviation are much higher.  Particularly affected
-are the first runs of training and inference sweeps (small model, context 128, warm-up 0): most likely there
-is some extra initialization for the new task even though we reset the GPU every time.  In general, increasing the number
+Without warm-up, the running time as well as the standard deviation are much higher.  In general, increasing the number
 of warmup steps led to a smaller standard deviation, but not always.  Having more warmup steps helps because
 there is some intentional lazy initialization and auto-tuning (different behavior for frequent vs. one-off tasks).
 
@@ -93,6 +83,46 @@ there is some intentional lazy initialization and auto-tuning (different behavio
 \input{tables/benchmark.tex}
 
 \subsubsection*{Problem (nsys\_profile)}
+
+\begin{enumerate}[label=(\alph*)]
+    \item \textbf{What is the total time spent on your forward pass? Does it match what we had measured before
+with the Python standard library?}
+
+\input{tables/profile_forw.tex}
+
+The forward time matches what we measured earlier (is a little higher).
+
+    \item \textbf{What CUDA kernel takes the most cumulative GPU time during the forward pass? How many
+times is this kernel invoked during a single forward pass of your model? Is it the same kernel
+that takes the most runtime when you do both forward and backward passes?}
+
+For an xl model with context length 512, ampere_sgemm_128x64_tn (matrix multiplication kernel operating on 128 rows × 64 columns in single precision) 
+takes the most time during the forward pass and gets called 52 times.  In the backward pass, the most time is taken by a similar matrix multiplication
+ampere_sgemm_64x32_sliced1x4_nn, but for both steps combined ampere_sgemm_128x64_tn still takes the most time.
+
+    \item \textbf{What other kernels besides matrix multiplies do you see accounting for non-trivial CUDA runtime in the forward
+pass?}
+
+I see elementwise operations, such as multiplication and addition, (at::native::elementwise_kernel and at::native::vectorized_elementwise_kernel) 
+and reductions, such as mean and max (at::native::reduce_kernel).
+
+    \item \textbf{Profile running one complete training step with your implementation of AdamW (i.e., the forward
+pass, computing the loss and running a backward pass, and finally an optimizer step, as you’d do
+during training). How does the fraction of time spent on matrix multiplication change, compared
+to doing inference (forward pass only)? How about other kernels?}
+
+For an xl model with context length 512, during inference, 4 matrix multiplication kernels take 84.5\% of the time with the rest going to elementwise (mostly)
+and reduction operations.  Over a training step, there are many more kernels run (including matrix multiplication ones): matrix multiplication still dominates
+with 74.2\%, while pointwise operations take a relatively larger share of time.
+
+    \item \textbf{Compare the runtime of the softmax operation versus the matrix multiplication operations within
+the self-attention layer of your model during a forward pass. How does the difference in runtimes
+compare to the difference in FLOPs?}
+
+For an xl model with context length 512, focusing on scaled\_dot\_product\_attention, most of the time (72\%) goes on softmax, where most work
+is done by elementwise kernels, but over scaled\_dot\_product\_attention, 87\% of the time is taken by matrix multiplication kernels.
+\end{enumerate}
+
 \subsubsection*{Problem (mixed\_precision\_accumulation)}
 \begin{tightcode}
 \begin{lstlisting}
