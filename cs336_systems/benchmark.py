@@ -4,7 +4,6 @@ from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from timeit import default_timer
 
-import cs336_basics
 import torch
 import torch.cuda.nvtx as nvtx
 from cs336_basics.nn_utils import cross_entropy  # type: ignore
@@ -12,12 +11,13 @@ from hydra import main
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
 from jaxtyping import Int
-from model_patch import annotated_scaled_dot_product_attention
 from omegaconf import DictConfig
 from torch import Tensor
 
-# Monkey-patch for annotated scaled dot-product attention - only if profiling self-attention!
-cs336_basics.model.scaled_dot_product_attention = annotated_scaled_dot_product_attention
+# Monkey patch for annotated scaled dot-product attention - only if profiling self-attention!
+# import cs336_basics
+# from model_patch import annotated_scaled_dot_product_attention
+# cs336_basics.model.scaled_dot_product_attention = annotated_scaled_dot_product_attention
 
 # Configuration
 if torch.cuda.is_available():
