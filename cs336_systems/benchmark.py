@@ -108,6 +108,7 @@ def run(cfg: DictConfig) -> None:
     forward_name = "forward_" + suffix
     backward_name = "backward_" + suffix
     optimizer_name = "optimizer_" + suffix
+    train_step_name = "train_" + suffix
     num_mesurement_steps = 1 if cfg.mem_profile else cfg.num_measurement_steps
 
     if cfg.forward_only:
@@ -145,30 +146,31 @@ def run(cfg: DictConfig) -> None:
 
             # Measurements
             for _ in range(num_mesurement_steps):
-                # zero_grad and sync outside of the timing loop
-                model.zero_grad(set_to_none=True)
-                sync()
+                with maybe_profile_memory(cfg.mem_profile, train_step_name):
+                    # zero_grad and sync outside of the timing loop
+                    model.zero_grad(set_to_none=True)
+                    sync()
 
-                # Time: forward pass, loss, backward pass & sync
-                t0 = default_timer()
-                with nvtx.range(forward_name), maybe_profile_memory(cfg.mem_profile, forward_name):
-                    logits = model(inputs)
-                    loss = cross_entropy(logits, targets)
-                    sync()
-                t1 = default_timer()
-                with nvtx.range(backward_name), maybe_profile_memory(cfg.mem_profile, backward_name):
-                    loss.backward()
-                    sync()
-                t2 = default_timer()
+                    # Time: forward pass, loss, backward pass & sync
+                    t0 = default_timer()
+                    with nvtx.range(forward_name):
+                        logits = model(inputs)
+                        loss = cross_entropy(logits, targets)
+                        sync()
+                    t1 = default_timer()
+                    with nvtx.range(backward_name):
+                        loss.backward()
+                        sync()
+                    t2 = default_timer()
+
+                    # Optimizer step
+                    with nvtx.range(optimizer_name):
+                        optimizer.step()
+                        sync()
 
                 # Collect timing data
                 forw_times.append(t1 - t0)
                 back_times.append(t2 - t1)
-
-                # Optimizer step
-                with nvtx.range(optimizer_name), maybe_profile_memory(cfg.mem_profile, optimizer_name):
-                    optimizer.step()
-                    sync()
 
     if not cfg.mem_profile:
         # Compute statistics
