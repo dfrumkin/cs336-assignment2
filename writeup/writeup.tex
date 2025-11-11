@@ -46,13 +46,20 @@
 \setcounter{subsection}{0}
 
 \subsection{Profiling and Benchmarking}
+
+\textbf{Code:} \texttt{cs336\_systems/benchmark.py}
+
 \subsubsection*{Problem (benchmarking\_script)}
+
+\textbf{Code:} 
+\begin{itemize}
+\item \texttt{cs336\_systems/benchmark.sh}
+\item \texttt{cs336\_systems/benchmark.ipynb}
+\end{itemize}
 
 \begin{enumerate}[label=(\alph*)]
 \item \textbf{Write a script to perform basic end-to-end benchmarking of the forward and backward passes in
 your model.}
-
-\textbf{Code:} \texttt{cs336\_systems/benchmark.py}, \texttt{cs336\_systems/benchmark.sh}, \texttt{cs336\_systems/benchmark.ipynb}
 
 In this and subsequent problems I used an A-100 via \href{https://lambda.ai/}{lambda.ai} and performed 
 sweeps over (forward only, model size, context window size, number of warmup iterations).
@@ -83,6 +90,13 @@ there is some intentional lazy initialization and auto-tuning (different behavio
 \input{tables/benchmark.tex}
 
 \subsubsection*{Problem (nsys\_profile)}
+
+\textbf{Code:} 
+\begin{itemize}
+\item \texttt{cs336\_systems/profile.sh}
+\item \texttt{cs336\_systems/profile\_reports.sh}
+\item \texttt{cs336\_systems/profile.ipynb}
+\end{itemize}
 
 \begin{enumerate}[label=(\alph*)]
     \item \textbf{What is the total time spent on your forward pass? Does it match what we had measured before
@@ -167,6 +181,12 @@ fourth cases (equivalent: implicit or explicity upcasting to float32) we get onl
 
 \subsubsection*{Problem (benchmarking\_mixed\_precision)}
 
+\textbf{Code:} 
+
+\begin{itemize}
+\item \texttt{cs336\_systems/benchmark\_mp.sh}
+\item \texttt{cs336\_systems/mixed\_precision.ipynb}
+\end{itemize}
 
 \begin{enumerate}[label=(\alph*)]
 
@@ -180,14 +200,70 @@ fourth cases (equivalent: implicit or explicity upcasting to float32) we get onl
     produce float16/bfloat16 activations, but the benefits would be much smaller than from the fused matmul.
 
     \item Mixed precision did not help with OOM issues on A-100 with 40GB GPU memory (the savings are limited by the factor of 2); however,
-    as the model and the context window sizes increased, we got super-linear savings in running time.  Surprisingly, with mixed precision, 
-    the 2.7B model's inference was faster than that of the xl and even large model at small context window sizes.
+    as the model and the context window sizes increased, we got super-linear savings in running time as a result of better register / cache / memory
+    utilization and more efficient tensor cores / kernels.  Surprisingly, with mixed precision, 
+    the 2.7B model's inference was faster than that of the xl or even large model at small context window sizes.
 
     \input{tables/mixed_precision.tex}
 
 \end{enumerate}
 
 \subsubsection*{Problem (memory\_profiling)}
+
+\textbf{Code:} \texttt{cs336\_systems/profile\_memory.sh}
+
+Using an H-100 since on an A-100 we would run out of memory.
+
+\begin{enumerate}[label=(\alph*)]
+    
+    \item \textbf{How do your memory timelines look like? Can you tell which stage is running based on the peaks you see?}
+    
+For the forward pass during inference, most memory has alaredy been allocated and we see small bursts.  The largest peaks corresponds to \texttt{softmax}.  Smaller ones correspond to other
+transformer block operations, such as \texttt{SiLU}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/forward.png}
+    \caption{Forward pass}
+\end{figure}
+
+For the full step, we see a small spike for \texttt{zero\_grad} in the beginning, then a gradual increase in memory use during the forward pass (store activations with spikes for softmax, etc.).
+During the backward pass, we deallocate activations while allocating / reusing memory for gradients.  Finally, the optimizer step consumes a lot of memory for 
+the two AdamW moments per parameter.  
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/training_step.png}
+    \caption{Training step}
+\end{figure}
+
+    \item \textbf{What is the peak memory usage of each context length when doing a forward pass? What about when doing a full training step?}
+
+For the forward pass (inference), the peak memory usage expectedly grows with the context length.  
+Optimizer dominates the training step in terms of memory consumption, but this difference is less pronounced as we increase the context length, so
+for larger context windows we would expect the forward pass to require the most memory.  
+
+    \input{tables/peak_memory.tex}
+    
+    \item \textbf{Does mixed-precision significantly affect memory usage?}
+        
+We instantiate the model in float32 and then use autocast for the forward pass, so we increase memory consumption during warmup - before taking measurements.  
+Yes, most activations become smaller, but during inference we don't keep them around anyway.  During training, the memory footprint
+of the forward pass is reduced with mixed precision; however, in our setup the peak memory usage is ultimately dominated by the optimizer step.
+
+    \input{tables/peak_memory_mp.tex}
+
+    \item \textbf{At our reference hyperparameters, what is the size of a tensor of activations in the Transformer residual stream, in single-precision?}
+
+    $\frac{d_k \times context\_length \times batch\_size \times bytes\_in\_float}{bytes\_in\_megabyte}=\frac{2560 \times 512 \times 4 \times 4}{1024^2}=20$ (MB).
+
+    \item \textbf{What is the size of the largest allocations shown? Looking through the stack trace, can you tell where those allocations come from?}
+    
+    The largest alloctions have size 128 MB and come from attention's softmax.
+
+    $\frac{batch\_size \times num\_heads \times context\_size^2 \times bytes\_in\_float}{bytes\_in\_megabyte} = \frac{4 \times 32 \times 512^2 \times 4}{1024^2} = 128$
+
+\end{enumerate}
 
 \subsection{Optimizing Attention with FlashAttention-2}
 \subsubsection*{Problem (pytorch\_attention)}
