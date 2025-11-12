@@ -81,7 +81,7 @@ def run(cfg: DictConfig) -> None:
             sync()
 
             # Measurements
-            for _ in range(cfg.num_mesurement_steps):
+            for _ in range(cfg.num_measurement_steps):
                 # Time: forward pass & sync
                 t0 = default_timer()
                 attention(q, k, v)
@@ -103,7 +103,7 @@ def run(cfg: DictConfig) -> None:
             loss.backward()
 
         # Measurements
-        for _ in range(cfg.num_mesurement_steps):
+        for _ in range(cfg.num_measurement_steps):
             # zero_grad and sync
             q.grad = k.grad = v.grad = None
             sync()
