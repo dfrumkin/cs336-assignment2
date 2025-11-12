@@ -95,13 +95,17 @@ def run(cfg: DictConfig) -> None:
     mp_context = torch.autocast(device_type=device.type, dtype=torch.bfloat16) if cfg.mixed_precision else nullcontext()
 
     # Instantiate optimizer
-    embedding = [model.token_embeddings.weight]  # type: ignore
-    others = [p for p in model.parameters() if p is not model.token_embeddings.weight]  # type: ignore
-    params = [
-        {"params": others, "weight_decay": 0.1},
-        {"params": embedding, "weight_decay": 0.0},
-    ]
-    optimizer = instantiate(cfg.optimizer, params=params)
+    if cfg.use_optimizer:
+        embedding = [model.token_embeddings.weight]  # type: ignore
+        others = [p for p in model.parameters() if p is not model.token_embeddings.weight]  # type: ignore
+        params = [
+            {"params": others, "weight_decay": 0.1},
+            {"params": embedding, "weight_decay": 0.0},
+        ]
+        optimizer = instantiate(cfg.optimizer, params=params)
+    else:
+        optimizer = None
+
     forw_times = []
     back_times = []
     suffix = "_".join(f"{k}_{v}" for k, v in results.items())
@@ -143,11 +147,13 @@ def run(cfg: DictConfig) -> None:
                 logits = model(inputs)
             loss = cross_entropy(logits, targets)
             loss.backward()
+            if optimizer is not None:
+                optimizer.step()
 
         # Measurements
         for _ in range(num_mesurement_steps):
             with maybe_profile_memory(cfg.mem_profile, train_step_name):
-                # zero_grad and sync outside of the timing loop
+                # zero_grad and sync
                 model.zero_grad(set_to_none=True)
                 sync()
 
@@ -169,9 +175,10 @@ def run(cfg: DictConfig) -> None:
                 t2 = default_timer()
 
                 # Optimizer step
-                with nvtx.range(optimizer_name):
-                    optimizer.step()
-                    sync()
+                if optimizer is not None:
+                    with nvtx.range(optimizer_name):
+                        optimizer.step()
+                        sync()
 
             # Collect timing data
             forw_times.append(t1 - t0)

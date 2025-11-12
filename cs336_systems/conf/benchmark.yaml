@@ -7,7 +7,8 @@ defaults:
 batch_size: 4
 num_warmup_steps: 5
 num_measurement_steps: 10
-forward_only: true
+forward_only: ??
+use_optimizer: ??
 mixed_precision: false
 mem_profile: false
 

@@ -15,7 +15,7 @@ for fwd in "${forward_only[@]}"; do
             for w in "${warmup[@]}"; do
                 sudo nvidia-smi --gpu-reset
                 "$PY" benchmark.py \
-                    forward_only="$fwd" model="$m" model.context_length="$c" num_warmup_steps="$w"
+                    forward_only="$fwd" model="$m" model.context_length="$c" num_warmup_steps="$w" use_optimizer=false
             done
         done
     done

@@ -15,7 +15,7 @@ for fwd in "${forward_only[@]}"; do
       nsys profile \
         -o "$out" -- \
         "$PY" benchmark.py \
-        forward_only="$fwd" model="$m" model.context_length="$c"
+        forward_only="$fwd" model="$m" model.context_length="$c" use_optimizer=true
     done
   done
 done

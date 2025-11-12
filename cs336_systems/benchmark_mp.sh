@@ -13,7 +13,7 @@ for fwd in "${forward_only[@]}"; do
         for c in "${ctx[@]}"; do
             sudo nvidia-smi --gpu-reset
             "$PY" benchmark.py \
-                forward_only="$fwd" model="$m" model.context_length="$c" num_warmup_steps=5 mixed_precision=true
+                forward_only="$fwd" model="$m" model.context_length="$c" num_warmup_steps=5 mixed_precision=true use_optimizer=false
         done
     done
 done

@@ -13,7 +13,7 @@ for mx in "${mixed_precision[@]}"; do
         for c in "${ctx[@]}"; do
             sudo nvidia-smi --gpu-reset
             "$PY" benchmark.py \
-                mixed_precision="$mx" forward_only="$fwd" model.context_length="$c" model="2.7B" num_warmup_steps=5 mem_profile=true
+                mixed_precision="$mx" forward_only="$fwd" model.context_length="$c" model="2.7B" num_warmup_steps=5 mem_profile=true use_optimizer=true
         done
     done
 done
