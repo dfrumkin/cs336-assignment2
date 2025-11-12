@@ -10,6 +10,7 @@ for cmpl in "${compile[@]}"; do
         for d in "${d_model[@]}"; do
             for c in "${ctx[@]}"; do
                 "$PY" benchmark_attention.py compile="$cmpl" forward_only="$fwd" d_model="$d" context_length="$c"
+            done
         done
     done
 done
