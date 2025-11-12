@@ -22,12 +22,15 @@ from torch import Tensor
 # Configuration
 if torch.cuda.is_available():
     device = torch.device("cuda")
+    backend = "inductor"
     sync = torch.cuda.synchronize
 elif torch.mps.is_available():
     device = torch.device("mps")
+    backend = "aot_eager"
     sync = torch.mps.synchronize
 else:
     device = torch.device("cpu")
+    backend = "eager"
 
     def sync():
         return None
@@ -89,6 +92,8 @@ def run(cfg: DictConfig) -> None:
 
     # Instantiate model and inputs
     model = instantiate(cfg.model).to(device)
+    if cfg.compile:
+        model = torch.compile(model, backend=backend)
     inputs = get_rand_tokens(cfg, device)
 
     # Mixed precision
@@ -135,10 +140,11 @@ def run(cfg: DictConfig) -> None:
                 # Collect timing data
                 forw_times.append(t1 - t0)
     else:
-        # Timing forward (including loss) and backward passes for training
+        # Timing the training step with or without the optimizer
         targets = get_rand_tokens(cfg, device)
         forw_times = []
         back_times = []
+        opt_times = []
 
         # Warmup
         for _ in range(cfg.num_warmup_steps):
@@ -180,25 +186,32 @@ def run(cfg: DictConfig) -> None:
                         optimizer.step()
                         sync()
 
+                t3 = default_timer()
+
             # Collect timing data
             forw_times.append(t1 - t0)
             back_times.append(t2 - t1)
+            opt_times.append(t3 - t2)
 
-    if not cfg.mem_profile:
+    if cfg.mem_profile:
+        results["peak_memory"] = torch.cuda.max_memory_allocated()
+    else:
         # Compute statistics
         results.update(calc_statistics(forw_times, "forward"))
         results.update(calc_statistics(back_times, "backward"))
+        if optimizer:
+            results.update(calc_statistics(opt_times, "optimizer"))
 
-        # Write statistics
-        csv_path = Path("benchmark_results.csv")
-        results = dict(sorted(results.items()))
+    # Write statistics
+    csv_path = Path("benchmark_results.csv")
+    results = dict(sorted(results.items()))
 
-        header = not csv_path.exists()
-        with csv_path.open("a", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=results.keys())
-            if header:
-                writer.writeheader()
-            writer.writerow(results)
+    header = not csv_path.exists()
+    with csv_path.open("a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=results.keys())
+        if header:
+            writer.writeheader()
+        writer.writerow(results)
 
     print(f"Finished: {results}")
 

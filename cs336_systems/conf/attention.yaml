@@ -1,0 +1,7 @@
+compile: false
+batch_size: 8
+context_length: ??
+d_model: ??
+forward_only: ??
+num_warmup_steps: 5
+num_mearurement_steps: 100

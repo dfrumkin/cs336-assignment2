@@ -4,6 +4,7 @@ defaults:
   - override hydra/job_logging: disabled
   - override hydra/hydra_logging: disabled
 
+compile: false
 batch_size: 4
 num_warmup_steps: 5
 num_measurement_steps: 10
