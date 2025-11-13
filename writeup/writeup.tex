@@ -235,6 +235,8 @@ At context length 128, the peak is during the backward pass (fewer attention act
 \end{figure}
 
     \item \textbf{What is the peak memory usage of each context length when doing a forward pass? What about when doing a full training step?}
+    
+    \textbf{Code:} \texttt{cs336\_systems/memory\_peaks.ipynb}
 
     There is not much difference between the context lengths 128 and 256 because in both cases memory is mostly used by the backward pass.
 
@@ -243,7 +245,7 @@ At context length 128, the peak is during the backward pass (fewer attention act
     \item \textbf{Does mixed-precision significantly affect memory usage?}
 
 Not significantly.  We instantiate the model in float32 and then use autocast for the forward pass, so we increase memory consumption during warmup - before taking measurements. 
-At the same time, it decreases the size of activations, which is important only with larger contexts (we see the difference at 512).
+At the same time, AMP decreases the size of activations, which matters only with larger contexts (we see the difference at 512).
 
     \item \textbf{At our reference hyperparameters, what is the size of a tensor of activations in the Transformer residual stream, in single-precision?}
 
@@ -260,8 +262,71 @@ At the same time, it decreases the size of activations, which is important only 
 \subsection{Optimizing Attention with FlashAttention-2}
 \subsubsection*{Problem (pytorch\_attention)}
 
+\begin{enumerate}[label=(\alph*)]
+
+    \item \textbf{Report the timings (or out-of-memory errors) you get for these configurations. At what size do
+you get out-of-memory errors? Do the accounting for the memory usage of attention in one of the
+smallest configurations you find that runs out of memory (you can use the equations for memory
+usage of Transformers from Assignment 1). How does the memory saved for backward change
+with the sequence length? What would you do to eliminate this memory cost?}
+
+\textbf{Code:} 
+
+\begin{itemize}
+\item \texttt{cs336\_systems/benchmark\_attention.py}
+\item \texttt{cs336\_systems/benchmark\_att.sh}
+\item \texttt{cs336\_systems/attention.ipynb}
+\end{itemize}
+
+\input{tables/attention.tex}
+
+On an H-100, we do not run out of memory from a single attention, though the memory usage increases dramatically
+with the context length.  The memory saved is:
+
+\begin{itemize}
+\item inputs (Q, K, V): $context \times d_{\text{model}}$ each;
+\item attention: $context^2$;
+\item output: $context \times d_{\text{model}}$.
+\end{itemize}
+
+With batch size 8, context size 16384, and $d_{\text{model}}=128$, we have:
+
+$\frac{4}{1024^2} \times (8 \times (16384^2 + 4 \times 16384 \times 128)) = 8448$ (MB)
+
+This is close to the 8514 MB peak reported by pytorch.  While the inputs and the output are relatively small, with long contexts,
+most memory is consumed by the intermediate attention matrix.  We need to perform the computation differently to avoid storing this 
+huge intermediate result.
+
+\end{enumerate}
+
 \subsection{Benchmarking JIT-Compiled Attention}
 \subsubsection*{Problem (torch\_compile)}
+
+\begin{enumerate}[label=(\alph*)]
+
+    \item \textbf{Extend your attention benchmarking script to include a compiled version of your PyTorch 
+    implementation of attention, and compare its performance to the uncompiled version with the same
+configuration as the \texttt{pytorch\_attention} problem above.}
+
+See the tables above.  We do not save on memory, but there are significant savings on running time with larger contexts.
+
+    \item \textbf{Now, compile your entire Transformer model in your end-to-end benchmarking script. How does
+the performance of the forward pass change? What about the combined forward and backward
+passes and optimizer steps?}
+
+\textbf{Code:} 
+\begin{itemize}
+\item \texttt{cs336\_systems/benchmark\_comp.sh}
+\item \texttt{cs336\_systems/compiled.ipynb}
+\end{itemize}
+
+\input{tables/compiled.tex}
+
+The results are with batch size 4.  Compilation reduces the running time of both the forward and backward passes, 
+but less so for larger models and contexts.  It has virtually no effect on the optimizer step because it's not compiled.
+
+\end{enumerate}
+
 \subsubsection*{Problem (flash\_forward)}
 \subsubsection*{Problem (flash\_backward)}
 \subsubsection*{Problem (flash\_benchmarking)}
