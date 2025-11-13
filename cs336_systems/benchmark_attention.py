@@ -92,8 +92,6 @@ def run(cfg: DictConfig) -> None:
                 forw_times.append(t1 - t0)
     else:
         # Timing forward (including loss) and backward passes for training
-        forw_times = []
-        back_times = []
 
         # Warmup
         for _ in range(cfg.num_warmup_steps):

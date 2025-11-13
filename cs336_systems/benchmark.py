@@ -113,6 +113,7 @@ def run(cfg: DictConfig) -> None:
 
     forw_times = []
     back_times = []
+    opt_times = []
     suffix = "_".join(f"{k}_{v}" for k, v in results.items())
     forward_name = "forward_" + suffix
     backward_name = "backward_" + suffix
@@ -142,9 +143,6 @@ def run(cfg: DictConfig) -> None:
     else:
         # Timing the training step with or without the optimizer
         targets = get_rand_tokens(cfg, device)
-        forw_times = []
-        back_times = []
-        opt_times = []
 
         # Warmup
         for _ in range(cfg.num_warmup_steps):
