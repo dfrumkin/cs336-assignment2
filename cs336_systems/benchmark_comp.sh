@@ -12,7 +12,7 @@ for comp in "${compiled[@]}"; do
         for m in "${models[@]}"; do
             for c in "${ctx[@]}"; do
                 "$PY" benchmark.py \
-                    compile="$comp" forward_only="$fwd" model="$m" model.context_length="$c" num_warmup_steps=5 mixed_precision=true use_optimizer=true
+                    compile="$comp" forward_only="$fwd" model="$m" model.context_length="$c" num_warmup_steps=5 use_optimizer=true
             done
         done
     done
