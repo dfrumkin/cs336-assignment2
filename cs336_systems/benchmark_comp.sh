@@ -7,7 +7,7 @@ forward_only=(false true)
 models=(small medium large xl "2.7B")
 ctx=(128 256 512 1024)
 
-for comp in "${compiled[@]}"; do
+for comp in "${compile[@]}"; do
     for fwd in "${forward_only[@]}"; do
         for m in "${models[@]}"; do
             for c in "${ctx[@]}"; do
