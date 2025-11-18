@@ -95,9 +95,9 @@ def flash_fwd_kernel(
     Q_tile = tl.load(Q_block_ptr, boundary_check=(0, 1), padding_option="zero")
 
     # Output, logsumexp, maximum for the tile - all in float32 (default)
-    o_i = tl.zeros((Q_TILE_SIZE, D))
-    l_i = tl.zeros((Q_TILE_SIZE,))
-    m_i = tl.full((Q_TILE_SIZE,), -float("inf"))
+    o_i = tl.zeros((Q_TILE_SIZE, D), dtype=tl.float32)
+    l_i = tl.zeros((Q_TILE_SIZE,), dtype=tl.float32)
+    m_i = tl.full((Q_TILE_SIZE,), -float("inf"), dtype=tl.float32)
 
     # Indices for causal masking
     if is_causal:
@@ -227,6 +227,20 @@ class FlashTriton(torch.autograd.Function):
         logsumexp: Float[Tensor, " ... n_q"],
         is_causal: bool,
     ):
+        """Torch-compiled helper for FlashAttention 2 backward pass
+
+        Args:
+            d_o (Float[Tensor, " ... n_q d"]): Gradient of the output.
+            q (Float[Tensor, " ... n_q d"]): The query.
+            k (Float[Tensor, " ... n_k d"]): The key.
+            v (Float[Tensor, " ... n_k d"]): The value.
+            o (Float[Tensor, " ... n_q d"]): The output from the forward pass.
+            logsumexp (Float[Tensor, " ... n_q"]): Logsumexp from the forward pass.
+            is_causal (bool, optional): Whether to apply causal masking.  Defaults to False.
+
+        Returns:
+            Gradients of query, key, and value: dQ, dK, dV.
+        """
         n_q, d_model = q.shape[-2:]
         n_k = k.shape[-2]
         scale = 1 / math.sqrt(d_model)
