@@ -136,7 +136,7 @@ def flash_fwd_kernel(
         V_block_ptr = V_block_ptr.advance((K_TILE_SIZE, 0))
 
     # Compute the output and logsumexp for the i'th query tile
-    o_i = (o_i / l_i[:, None]).to(O_block_ptr.dtype)
+    o_i = (o_i / l_i[:, None]).to(O_block_ptr.type.element_ty)
     l_i = m_i + tl.log(l_i)
 
     # Write outputs and logsumexp for the query tile
