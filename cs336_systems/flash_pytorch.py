@@ -2,7 +2,8 @@ import math
 
 import einx
 import torch
-from jaxtyping import Float
+from beartype import beartype
+from jaxtyping import Float, jaxtyped
 from torch import Tensor
 
 B_q = 16
@@ -11,6 +12,7 @@ B_k = 16
 
 class FlashPytorch(torch.autograd.Function):
     @staticmethod
+    @jaxtyped(typechecker=beartype)
     def forward(
         ctx: torch.autograd.function.FunctionCtx,
         q: Float[Tensor, " ... n_q d"],
@@ -85,5 +87,38 @@ class FlashPytorch(torch.autograd.Function):
         return o
 
     @staticmethod
-    def backward(ctx: torch.autograd.function.FunctionCtx, grad_out: Float[Tensor, " ... n_q d"]):
-        raise NotImplementedError
+    @jaxtyped(typechecker=beartype)
+    def backward(ctx: torch.autograd.function.FunctionCtx, d_o: Float[Tensor, " ... n_q d"]):
+        """FlashAttention 2 backward pass in pytorch
+
+        Args:
+            ctx (torch.autograd.function.FunctionCtx): Autograd context
+            d_o (Float[Tensor, "... n_q d"]): Output gradient
+
+        Returns:
+            Gradients for the inputs to forward: dQ, dK, dV, None (for is_causal)
+        """
+        q, k, v, o, logsumexp = ctx.saved_tensors  # type: ignore
+        n_q, d_model = q.shape[-2:]
+        n_k = k.shape[-2]
+        scale = 1 / math.sqrt(d_model)
+
+        d = einx.sum(" ... n_q d -> ... n_q", o * d_o)
+
+        # Recompute logits from queries and keys
+        s = einx.dot("... n_q d, ...  n_k d -> ... n_q n_k", q, k, n_q=n_q, n_k=n_k, d=d_model) * scale
+
+        # Recompute scores
+        p = torch.exp(einx.subtract("... n_q n_k, ... n_q -> ... n_q n_k", s, logsumexp, n_q=n_q, n_k=n_k))
+
+        # Compute gradients
+        d_v = einx.dot("... n_q n_k, ... n_q d -> ... n_k d", p, d_o, n_q=n_q, n_k=n_k, d=d_model)
+        d_p = einx.dot("... n_q d, ... n_k d -> ... n_q n_k", d_o, v, n_q=n_q, n_k=n_k, d=d_model)
+        d_s = einx.multiply(
+            "... n_q n_k, ... n_q n_k -> ... n_q n_k", p, einx.subtract("... n_q n_k, ... n_q -> ... n_q n_k", d_p, d)
+        )
+        d_q = einx.dot("... n_q n_k, ... n_k d -> ... n_q d", d_s, k, n_q=n_q, n_k=n_k, d=d_model) * scale
+        d_k = einx.dot("... n_q n_k, ... n_q d -> ... n_k d", d_s, q, n_q=n_q, n_k=n_k, d=d_model) * scale
+
+        # Output gradients for the inputs of forward: q, k, v, is_causal
+        return d_q, d_k, d_v, None

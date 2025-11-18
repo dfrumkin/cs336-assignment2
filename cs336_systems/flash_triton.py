@@ -4,8 +4,7 @@ import einx
 import torch
 import triton
 import triton.language as tl
-from beartype import beartype
-from jaxtyping import Float, jaxtyped
+from jaxtyping import Float
 from torch import Tensor
 
 B_q = 64
@@ -100,7 +99,7 @@ def flash_fwd_kernel(
     l_i = tl.zeros((Q_TILE_SIZE,))
     m_i = tl.full((Q_TILE_SIZE,), -float("inf"))
 
-    # Query indices for causal masking
+    # Indices for causal masking
     if is_causal:
         q_indices = query_tile_index * Q_TILE_SIZE + tl.arange(0, Q_TILE_SIZE)
 
@@ -147,7 +146,6 @@ def flash_fwd_kernel(
 
 class FlashTriton(torch.autograd.Function):
     @staticmethod
-    @jaxtyped(typechecker=beartype)
     def forward(
         ctx: torch.autograd.function.FunctionCtx,
         q: Float[Tensor, " ... n_q d"],
@@ -168,9 +166,9 @@ class FlashTriton(torch.autograd.Function):
         """
 
         # Flatten batch-like dimensions
-        qf: Float[Tensor, " b n_q d"] = einx.rearrange("... n_q d -> (...) n_q d", q)  # pyright: ignore[reportAssignmentType]
-        kf: Float[Tensor, " b n_k d"] = einx.rearrange("... n_k d -> (...) n_k d", k)  # pyright: ignore[reportAssignmentType]
-        vf: Float[Tensor, " b n_k d"] = einx.rearrange("... n_k d -> (...) n_k d", v)  # pyright: ignore[reportAssignmentType]
+        qf: Float[Tensor, " b n_q d"] = einx.rearrange("... n_q d -> (...) n_q d", q)  # type: ignore
+        kf: Float[Tensor, " b n_k d"] = einx.rearrange("... n_k d -> (...) n_k d", k)  # type: ignore
+        vf: Float[Tensor, " b n_k d"] = einx.rearrange("... n_k d -> (...) n_k d", v)  # type: ignore
 
         # Input dimensions
         batch, n_q, d_model = qf.shape
@@ -186,12 +184,12 @@ class FlashTriton(torch.autograd.Function):
         logsumexp = torch.empty(q.shape[:-1], dtype=torch.float32, device=q.device)
         # These are contiguous views into contiguous tensors
         # Slightly easier this way than trying to restore the original o and logsumexp after Triton
-        of: Float[Tensor, " b n_q d"] = einx.rearrange("... n_q d -> (...) n_q d", o)  # pyright: ignore[reportAssignmentType]
-        lf: Float[Tensor, " b n_q"] = einx.rearrange("... n_q -> (...) n_q", logsumexp)  # pyright: ignore[reportAssignmentType]
+        of: Float[Tensor, " b n_q d"] = einx.rearrange("... n_q d -> (...) n_q d", o)  # type: ignore
+        lf: Float[Tensor, " b n_q"] = einx.rearrange("... n_q -> (...) n_q", logsumexp)  # type: ignore
 
         scale = 1.0 / math.sqrt(d_model)
 
-        flash_fwd_kernel[(triton.cdiv(n_q, B_q), batch)](
+        flash_fwd_kernel[(triton.cdiv(n_q, B_q), batch)](  # type: ignore
             qf,
             kf,
             vf,
@@ -213,7 +211,66 @@ class FlashTriton(torch.autograd.Function):
 
         # Save data for the backward pass
         ctx.save_for_backward(q, k, v, o, logsumexp)  # TODO: Do I need to save in the original shapes?
-        ctx.is_causal = is_causal  # pyright: ignore[reportAttributeAccessIssue]
+        ctx.is_causal = is_causal  # type: ignore
 
         # Return the output
         return o
+
+    @staticmethod
+    @torch.compile(fullgraph=True)
+    def _backward_impl(
+        d_o: Float[Tensor, " ... n_q d"],
+        q: Float[Tensor, " ... n_q d"],
+        k: Float[Tensor, " ... n_k d"],
+        v: Float[Tensor, " ... n_k d"],
+        o: Float[Tensor, " ... n_q d"],
+        logsumexp: Float[Tensor, " ... n_q"],
+        is_causal: bool,
+    ):
+        n_q, d_model = q.shape[-2:]
+        n_k = k.shape[-2]
+        scale = 1 / math.sqrt(d_model)
+
+        d = einx.sum(" ... n_q d -> ... n_q", o * d_o)
+
+        # Recompute logits from queries and keys
+        s = einx.dot("... n_q d, ...  n_k d -> ... n_q n_k", q, k, n_q=n_q, n_k=n_k, d=d_model) * scale
+
+        # Apply the causal mask
+        if is_causal:
+            mask = torch.triu(torch.ones(n_q, n_q, dtype=torch.bool, device=s.device), diagonal=1)
+            s = s.masked_fill(mask, -torch.inf)
+
+        # Recompute scores
+        p = torch.exp(einx.subtract("... n_q n_k, ... n_q -> ... n_q n_k", s, logsumexp, n_q=n_q, n_k=n_k))
+
+        # Compute gradients
+        d_v = einx.dot("... n_q n_k, ... n_q d -> ... n_k d", p, d_o, n_q=n_q, n_k=n_k, d=d_model)
+        d_p = einx.dot("... n_q d, ... n_k d -> ... n_q n_k", d_o, v, n_q=n_q, n_k=n_k, d=d_model)
+        d_s = einx.multiply(
+            "... n_q n_k, ... n_q n_k -> ... n_q n_k", p, einx.subtract("... n_q n_k, ... n_q -> ... n_q n_k", d_p, d)
+        )
+        d_q = einx.dot("... n_q n_k, ... n_k d -> ... n_q d", d_s, k, n_q=n_q, n_k=n_k, d=d_model) * scale
+        d_k = einx.dot("... n_q n_k, ... n_q d -> ... n_k d", d_s, q, n_q=n_q, n_k=n_k, d=d_model) * scale
+
+        # Output gradients
+        return d_q, d_k, d_v
+
+    @staticmethod
+    def backward(ctx, d_o: torch.Tensor):
+        """FlashAttention 2 backward pass in pytorch
+
+        Args:
+            ctx (torch.autograd.function.FunctionCtx): Autograd context
+            d_o (Float[Tensor, "... n_q d"]): Output gradient
+
+        Returns:
+            Gradients for the inputs to forward: dQ, dK, dV, None (for is_causal)
+        """
+        # Get saved data
+        q, k, v, o, logsumexp = ctx.saved_tensors  # type: ignore
+        is_causal = ctx.is_causal
+
+        # Call the compiled helper
+        d_q, d_k, d_v = FlashTriton._backward_impl(d_o, q, k, v, o, logsumexp, is_causal)
+        return d_q, d_k, d_v, None
