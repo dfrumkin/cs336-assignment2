@@ -31,7 +31,7 @@ class FlashPytorch(torch.autograd.Function):
         """
         device = q.device
         d_model = q.shape[-1]
-        inv_sqrt_d = 1 / math.sqrt(d_model)
+        scale = 1 / math.sqrt(d_model)
 
         # Output and logsumexp
         o = torch.empty(q.shape, device=device)
@@ -52,9 +52,7 @@ class FlashPytorch(torch.autograd.Function):
                 v_j = v[..., j : j + B_k, :]
 
                 # Logits from queries and keys
-                s_ij = (
-                    einx.dot("... B_q d, ...  B_k d -> ... B_q B_k", q_i, k_j, B_q=B_q, B_k=B_k, d=d_model) * inv_sqrt_d
-                )
+                s_ij = einx.dot("... B_q d, ...  B_k d -> ... B_q B_k", q_i, k_j, B_q=B_q, B_k=B_k, d=d_model) * scale
 
                 # The new maximum and the associated correction factor
                 m_ij = torch.maximum(m_i, s_ij.max(dim=-1).values)
