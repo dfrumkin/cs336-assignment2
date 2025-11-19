@@ -287,7 +287,7 @@ def flash_bck_kernel(  # type: ignore
 
     # Load K and V
     K_tile = tl.load(K_block_ptr, boundary_check=(0, 1), padding_option="zero")
-    V_tile = tl.load(V_block_ptr, boundary_check=(0, 1), padding_option="zero")
+    V_tile = tl.load(V_block_ptr, boundary_check=(0, 1), padding_option="zero").to(tl.float32)
 
     # Initialize dK and dV - all in float32 (default)
     dK_tile = tl.zeros((K_TILE_SIZE, D), dtype=tl.float32)
