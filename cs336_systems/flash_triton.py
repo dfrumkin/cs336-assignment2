@@ -159,7 +159,11 @@ def flash_fwd_kernel(
     tl.store(L_block_ptr, l_i, boundary_check=(0,))
 
 
-@triton.autotune(configs=CONFIGS, key=["Q_TILE_SIZE", "K_TILE_SIZE"])
+@triton.autotune(
+    configs=CONFIGS,
+    key=["Q_TILE_SIZE", "K_TILE_SIZE"],
+    reset_to_zero=["dQ_ptr"],  # Important!!!  We are adding and not storing!
+)
 @triton.jit
 def flash_bck_kernel(  # type: ignore
     Q_ptr,
