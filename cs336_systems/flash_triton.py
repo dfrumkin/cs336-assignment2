@@ -287,9 +287,9 @@ def flash_bck_kernel(  # type: ignore
     dK_tile = tl.zeros((K_TILE_SIZE, D), dtype=tl.float32)
     dV_tile = tl.zeros((K_TILE_SIZE, D), dtype=tl.float32)
 
-    # Indices for causal masking
-    if is_causal:
-        k_indices = key_tile_index * K_TILE_SIZE + tl.arange(0, K_TILE_SIZE)
+    # Indices for causal masking / partial tiles
+    k_indices = key_tile_index * K_TILE_SIZE + tl.arange(0, K_TILE_SIZE)
+    key_valid = k_indices < N_KEYS
 
     # Indices for updating dQ
     offs_d = tl.arange(0, D)
@@ -306,10 +306,11 @@ def flash_bck_kernel(  # type: ignore
         s_ij = tl.dot(Q_tile, tl.trans(K_tile)) * scale
 
         # Apply the mask
+        invalid_keys = ~key_valid
+        q_indices = query_tile_index * Q_TILE_SIZE + tl.arange(0, Q_TILE_SIZE)
         if is_causal:
-            q_indices = query_tile_index * Q_TILE_SIZE + tl.arange(0, Q_TILE_SIZE)
-            mask = q_indices[:, None] < k_indices[None, :]
-            s_ij = tl.where(mask, -1e6, s_ij)
+            invalid_keys = invalid_keys | (q_indices[:, None] < k_indices[None, :])
+        s_ij = tl.where(invalid_keys, -1e6, s_ij)
 
         # Scores
         p_ij = tl.exp(s_ij - L_tile[:, None])
@@ -321,9 +322,8 @@ def flash_bck_kernel(  # type: ignore
 
         # Update dQ atomically using pointers
         dQ_update = tl.dot(dS_tile, K_tile)
-        offs_q = query_tile_index * Q_TILE_SIZE + tl.arange(0, Q_TILE_SIZE)
-        dQ_tile_ptrs = dQ_tile_ptrs_base + offs_q[:, None] * stride_dqq
-        mask_q = offs_q < N_QUERIES  # Handle partial tiles
+        dQ_tile_ptrs = dQ_tile_ptrs_base + q_indices[:, None] * stride_dqq
+        mask_q = q_indices < N_QUERIES  # Handle partial tiles
         tl.atomic_add(dQ_tile_ptrs, dQ_update, mask=mask_q[:, None])
 
         dK_tile = tl.dot(tl.trans(dS_tile), Q_tile, acc=dK_tile)
