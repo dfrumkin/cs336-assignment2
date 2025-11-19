@@ -326,7 +326,8 @@ def flash_bck_kernel(  # type: ignore
         # Update dQ atomically using pointers
         dQ_update = tl.dot(dS_tile, K_tile)
         dQ_tile_ptrs = dQ_tile_ptrs_base + q_indices[:, None] * stride_dqq
-        tl.atomic_add(dQ_tile_ptrs, dQ_update, mask=~q_invalid[:, None], sem="relaxed")
+        mask = (~q_invalid[:, None]) & (tl.arange(0, 1) == 0)  # Write from lane 0 only!
+        tl.atomic_add(dQ_tile_ptrs, dQ_update, mask=mask, sem="relaxed")
 
         dK_tile = tl.dot(tl.trans(dS_tile), Q_tile, acc=dK_tile)
 
