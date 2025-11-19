@@ -5,7 +5,8 @@ import torch
 from cs336_systems.flash_pytorch import FlashPytorch
 
 try:
-    from cs336_systems.flash_triton import FlashTriton
+    from cs336_systems.flash_triton import FlashTorchBwd as FlashTriton
+    # from cs336_systems.flash_triton import FlashTritonBwd as FlashTriton
 except Exception:
     FlashTriton = None
 
