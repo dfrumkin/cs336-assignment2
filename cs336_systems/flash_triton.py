@@ -287,7 +287,8 @@ def flash_bck_kernel(  # type: ignore
 
     # Load K and V
     K_tile = tl.load(K_block_ptr, boundary_check=(0, 1), padding_option="zero")
-    V_tile = tl.load(V_block_ptr, boundary_check=(0, 1), padding_option="zero").to(tl.float32)
+    K_tile32 = K_tile.to(tl.float32)
+    V_tile32 = tl.load(V_block_ptr, boundary_check=(0, 1), padding_option="zero").to(tl.float32)
 
     # Initialize dK and dV - all in float32 (default)
     dK_tile = tl.zeros((K_TILE_SIZE, D), dtype=tl.float32)
@@ -324,15 +325,15 @@ def flash_bck_kernel(  # type: ignore
 
         # Compute gradients
         dV_tile = tl.dot(tl.trans(p_ij), dO_tile, acc=dV_tile)
-        dP_tile = tl.dot(dO_tile, tl.trans(V_tile))
+        dP_tile = tl.dot(dO_tile, tl.trans(V_tile32))
         dS_tile = p_ij * (dP_tile - D_tile[:, None]) * scale
 
         # Update dQ atomically using pointers
-        dQ_update = tl.dot(dS_tile, K_tile)
+        dQ_update = tl.dot(dS_tile, K_tile32)
         dQ_tile_ptrs = dQ_tile_ptrs_base + q_indices[:, None] * stride_dqq
         tl.atomic_add(dQ_tile_ptrs, dQ_update, mask=~q_invalid[:, None], sem="relaxed")
 
-        dK_tile = tl.dot(tl.trans(dS_tile), Q_tile, acc=dK_tile)
+        dK_tile = tl.dot(tl.trans(dS_tile), Q_tile.to(tl.float32), acc=dK_tile)
 
         # Advance block pointers
         Q_block_ptr = tl.advance(Q_block_ptr, (Q_TILE_SIZE, 0))
