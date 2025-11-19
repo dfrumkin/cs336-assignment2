@@ -8,7 +8,7 @@ def test_timing_flash_forward_backward():
     n_heads = 16
     d_head = 64
     sequence_length = 16384
-    q, k, v = torch.randn(n_heads, sequence_length, d_head, device="cuda", dtype=torch.bfloat16, requires_grad=True)
+    q, k, v = torch.randn(3, n_heads, sequence_length, d_head, device="cuda", dtype=torch.bfloat16, requires_grad=True)
 
     flash = torch.compile(FlashAttention2.apply)
 
