@@ -17,8 +17,8 @@ def test_timing_flash_forward_backward():
         loss = o.sum()  # type: ignore
         loss.backward()
 
-        results = triton.testing.do_bench(flash_forward_backward, rep=10000, warmup=1000)
-        print(results)
+    results = triton.testing.do_bench(flash_forward_backward, rep=10000, warmup=1000)
+    print(results)
 
 
 if __name__ == "__main__":
