@@ -103,6 +103,7 @@ class FlashPytorch(torch.autograd.Function):
         n_k = k.shape[-2]
         scale = 1 / math.sqrt(d_model)
 
+        d_o = d_o.to(torch.float32)  # Just in case
         d = einx.sum(" ... n_q d -> ... n_q", o * d_o)
 
         # Recompute logits from queries and keys

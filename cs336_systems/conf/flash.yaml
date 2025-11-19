@@ -1,0 +1,7 @@
+batch_size: 1
+warmup: 5
+reps: 100
+attention: ??
+context_length: ??
+d_model: ??
+dtype: ??
