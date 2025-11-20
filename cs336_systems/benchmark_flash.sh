@@ -3,5 +3,6 @@ python benchmark_flash.py -m \
     context_length=128,256,512,1024,2048,4096,8192,16384,32768,65536 \
     d_model=16,32,64,128 \
     dtype=bfloat16,float32 \
+    hydra.output_subdir=null \
     hydra/job_logging=disabled \
     hydra/hydra_logging=disabled
