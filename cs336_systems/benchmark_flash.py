@@ -11,6 +11,7 @@ from triton.testing import do_bench
 from cs336_systems.flash_triton import FlashTorchBwd, FlashTritonBwd
 
 assert torch.cuda.is_available()
+torch.set_float32_matmul_precision("high")
 device = torch.device("cuda")
 DTYPE_MAP = {
     "bfloat16": torch.bfloat16,
