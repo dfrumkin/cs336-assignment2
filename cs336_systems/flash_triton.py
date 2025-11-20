@@ -449,9 +449,7 @@ class FlashTorchBwd(_FlashBase):
         Returns:
             Gradients of query, key, and value: dQ, dK, dV.
         """
-        n_q = int(q.shape[-2])
-        d_model = int(q.shape[-1])
-        n_k = int(k.shape[-2])
+        n_q, d_model = q.shape[-2:]
         scale = 1 / math.sqrt(d_model)
 
         d_o = d_o.to(torch.float32)  # Just in case
@@ -466,16 +464,16 @@ class FlashTorchBwd(_FlashBase):
             s = s.masked_fill(mask, -torch.inf)
 
         # Recompute scores
-        p = torch.exp(einx.subtract("... n_q n_k, ... n_q -> ... n_q n_k", s, logsumexp, n_q=n_q, n_k=n_k))
+        p = torch.exp(einx.subtract("... n_q n_k, ... n_q -> ... n_q n_k", s, logsumexp))
 
         # Compute gradients
-        d_v = einx.dot("... n_q n_k, ... n_q d -> ... n_k d", p, d_o, n_q=n_q, n_k=n_k, d=d_model)
-        d_p = einx.dot("... n_q d, ... n_k d -> ... n_q n_k", d_o, v, n_q=n_q, n_k=n_k, d=d_model)
+        d_v = einx.dot("... n_q n_k, ... n_q d -> ... n_k d", p, d_o)
+        d_p = einx.dot("... n_q d, ... n_k d -> ... n_q n_k", d_o, v)
         d_s = einx.multiply(
             "... n_q n_k, ... n_q n_k -> ... n_q n_k", p, einx.subtract("... n_q n_k, ... n_q -> ... n_q n_k", d_p, d)
         )
-        d_q = einx.dot("... n_q n_k, ... n_k d -> ... n_q d", d_s, k, n_q=n_q, n_k=n_k, d=d_model) * scale
-        d_k = einx.dot("... n_q n_k, ... n_q d -> ... n_k d", d_s, q, n_q=n_q, n_k=n_k, d=d_model) * scale
+        d_q = einx.dot("... n_q n_k, ... n_k d -> ... n_q d", d_s, k) * scale
+        d_k = einx.dot("... n_q n_k, ... n_q d -> ... n_k d", d_s, q) * scale
 
         # Output gradients
         return d_q, d_k, d_v

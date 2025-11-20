@@ -6,6 +6,8 @@ from cs336_basics.model import scaled_dot_product_attention
 from hydra import main
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
+from torch.cuda import OutOfMemoryError as CudaOOM
+from triton.runtime.errors import OutOfResources as TritonOOR
 from triton.testing import do_bench
 
 from cs336_systems.flash_triton import FlashTorchBwd, FlashTritonBwd
@@ -17,6 +19,7 @@ DTYPE_MAP = {
     "bfloat16": torch.bfloat16,
     "float32": torch.float32,
 }
+KERNEL_RESOURCE_ERRORS = (CudaOOM, TritonOOR)
 
 
 def get_sweep_params() -> dict[str, str]:
@@ -66,7 +69,7 @@ def run(cfg: DictConfig) -> None:
     try:
         with torch.inference_mode():
             fw = do_bench(forward, warmup=cfg.warmup, rep=cfg.reps)
-    except torch.cuda.OutOfMemoryError:
+    except KERNEL_RESOURCE_ERRORS:
         fw = ""
 
     # Backward
@@ -79,7 +82,7 @@ def run(cfg: DictConfig) -> None:
             loss.backward(retain_graph=True)
 
         bk = do_bench(backward, warmup=cfg.warmup, rep=cfg.reps)
-    except torch.cuda.OutOfMemoryError:
+    except KERNEL_RESOURCE_ERRORS:
         bk = ""
 
     # Forward-backward
@@ -92,7 +95,7 @@ def run(cfg: DictConfig) -> None:
             loss.backward()
 
         fw_bk = do_bench(forward_backward, warmup=cfg.warmup, rep=cfg.reps)
-    except torch.cuda.OutOfMemoryError:
+    except KERNEL_RESOURCE_ERRORS:
         fw_bk = ""
 
     # Write statistics
