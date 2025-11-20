@@ -458,7 +458,7 @@ class FlashTorchBwd(_FlashBase):
         d = einx.sum(" ... n_q d -> ... n_q", o * d_o)
 
         # Recompute logits from queries and keys
-        s = einx.dot("... n_q d, ...  n_k d -> ... n_q n_k", q, k, n_q=n_q, n_k=n_k, d=d_model) * scale
+        s = einx.dot("... n_q d, ...  n_k d -> ... n_q n_k", q, k) * scale
 
         # Apply the causal mask
         if is_causal:
