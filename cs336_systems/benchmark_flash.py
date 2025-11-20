@@ -54,14 +54,17 @@ def run(cfg: DictConfig) -> None:
         case "pytorch":
             mask = torch.tril(torch.ones(cfg.context_length, cfg.context_length, dtype=torch.bool, device=device))
 
+            @torch.compile
             def forward():  # type: ignore
                 return scaled_dot_product_attention(q, k, v, mask)
         case "flash_torch_bwd":
 
+            @torch.compile
             def forward():
                 return FlashTorchBwd.apply(q, k, v, True)
         case "flash_triton_bwd":
 
+            @torch.compile
             def forward():
                 return FlashTritonBwd.apply(q, k, v, True)
 
@@ -80,6 +83,7 @@ def run(cfg: DictConfig) -> None:
         out = forward()
         loss = out.mean()  # type: ignore
 
+        @torch.compile
         def backward():
             q.grad = k.grad = v.grad = None
             loss.backward(retain_graph=True)
@@ -91,6 +95,7 @@ def run(cfg: DictConfig) -> None:
     # Forward-backward
     try:
 
+        @torch.compile
         def forward_backward():
             out = forward()
             loss = out.mean()  # type: ignore
