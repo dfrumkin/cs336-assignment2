@@ -54,22 +54,20 @@ def run(cfg: DictConfig) -> None:
         case "pytorch":
             mask = torch.tril(torch.ones(cfg.context_length, cfg.context_length, dtype=torch.bool, device=device))
 
-            @torch.compile
             def forward():  # type: ignore
                 return scaled_dot_product_attention(q, k, v, mask)
         case "flash_torch_bwd":
 
-            @torch.compile
             def forward():
                 return FlashTorchBwd.apply(q, k, v, True)
         case "flash_triton_bwd":
 
-            @torch.compile
             def forward():
                 return FlashTritonBwd.apply(q, k, v, True)
 
     # So we do not get RecompileLimitExceeded
     torch._dynamo.reset()
+    forward = torch.compile(forward)
 
     # Forward inference
     try:
