@@ -449,8 +449,9 @@ class FlashTorchBwd(_FlashBase):
         Returns:
             Gradients of query, key, and value: dQ, dK, dV.
         """
-        n_q, d_model = q.shape[-2:]
-        n_k = k.shape[-2]
+        n_q = int(q.shape[-2])
+        d_model = int(q.shape[-1])
+        n_k = int(k.shape[-2])
         scale = 1 / math.sqrt(d_model)
 
         d_o = d_o.to(torch.float32)  # Just in case
