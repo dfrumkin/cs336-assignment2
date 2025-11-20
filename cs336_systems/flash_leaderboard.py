@@ -1,10 +1,12 @@
 import torch
 import triton
 
-from cs336_systems.flash_triton import FlashTritonBwd as FlashAttention2
+from cs336_systems.flash_triton import FlashTorchBwd, FlashTritonBwd
+
+torch.set_float32_matmul_precision("high")
 
 
-def test_timing_flash_forward_backward():
+def test_timing_flash_forward_backward(FlashAttention2):
     n_heads = 16
     d_head = 64
     sequence_length = 16384
@@ -22,4 +24,7 @@ def test_timing_flash_forward_backward():
 
 
 if __name__ == "__main__":
-    test_timing_flash_forward_backward()
+    print("Torch Backward")
+    test_timing_flash_forward_backward(FlashTorchBwd)
+    print("Triton Backward")
+    test_timing_flash_forward_backward(FlashTritonBwd)
