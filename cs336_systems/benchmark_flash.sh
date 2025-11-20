@@ -6,5 +6,5 @@ python benchmark_flash.py -m \
     hydra.run.dir='' \
     hydra.sweep.dir='' \
     hydra.output_subdir='' \
-    hydra.job_logging.handlers=null \
-    hydra.hydra_logging.handlers=null
+    hydra.job_logging.handlers=[] \
+    hydra.hydra_logging.handlers=[]
