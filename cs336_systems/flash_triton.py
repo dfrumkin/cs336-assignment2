@@ -8,11 +8,18 @@ from jaxtyping import Float
 from torch import Tensor
 
 CONFIGS = [
+    # 64×64 with 4 or 8 warps
     triton.Config({"Q_TILE_SIZE": 64, "K_TILE_SIZE": 64}, num_warps=4),
+    triton.Config({"Q_TILE_SIZE": 64, "K_TILE_SIZE": 64}, num_warps=8),
+    # 64x128 with 4 or 8 warps
     triton.Config({"Q_TILE_SIZE": 64, "K_TILE_SIZE": 128}, num_warps=4),
+    triton.Config({"Q_TILE_SIZE": 64, "K_TILE_SIZE": 128}, num_warps=8),
+    # 128×64 with 4 or 8 warps
     triton.Config({"Q_TILE_SIZE": 128, "K_TILE_SIZE": 64}, num_warps=4),
-    # optionally:
-    # triton.Config({"Q_TILE_SIZE": 128, "K_TILE_SIZE": 128}, num_warps=4),
+    triton.Config({"Q_TILE_SIZE": 128, "K_TILE_SIZE": 64}, num_warps=8),
+    # maybe 128×128 with 4 or 8 warps
+    triton.Config({"Q_TILE_SIZE": 128, "K_TILE_SIZE": 128}, num_warps=4),
+    triton.Config({"Q_TILE_SIZE": 128, "K_TILE_SIZE": 128}, num_warps=8),
 ]
 
 

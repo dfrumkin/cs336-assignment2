@@ -65,6 +65,9 @@ def run(cfg: DictConfig) -> None:
             def forward():
                 return FlashTritonBwd.apply(q, k, v, True)
 
+    # So we do not get RecompileLimitExceeded
+    torch._dynamo.reset()
+
     # Forward inference
     try:
         with torch.inference_mode():
