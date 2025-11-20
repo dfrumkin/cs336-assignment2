@@ -1,4 +1,5 @@
 import csv
+import warnings
 from pathlib import Path
 
 import torch
@@ -11,6 +12,8 @@ from triton.runtime.errors import OutOfResources as TritonOOR
 from triton.testing import do_bench
 
 from cs336_systems.flash_triton import FlashTorchBwd, FlashTritonBwd
+
+warnings.filterwarnings("ignore", message="Skipping serialization of skipfiles_inline_module_allowlist")
 
 assert torch.cuda.is_available()
 torch.set_float32_matmul_precision("high")
