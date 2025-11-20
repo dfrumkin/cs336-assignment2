@@ -67,7 +67,7 @@ def run(cfg: DictConfig) -> None:
         with torch.inference_mode():
             fw = do_bench(forward, warmup=cfg.warmup, rep=cfg.reps)
     except torch.cuda.OutOfMemoryError:
-        fw = 0.0
+        fw = ""
 
     # Backward
     try:
@@ -80,7 +80,7 @@ def run(cfg: DictConfig) -> None:
 
         bk = do_bench(backward, warmup=cfg.warmup, rep=cfg.reps)
     except torch.cuda.OutOfMemoryError:
-        bk = 0.0
+        bk = ""
 
     # Forward-backward
     try:
@@ -93,7 +93,7 @@ def run(cfg: DictConfig) -> None:
 
         fw_bk = do_bench(forward_backward, warmup=cfg.warmup, rep=cfg.reps)
     except torch.cuda.OutOfMemoryError:
-        fw_bk = 0.0
+        fw_bk = ""
 
     # Write statistics
     results.update({"fw": fw, "bk": bk, "fw_bk": fw_bk})
