@@ -16,8 +16,9 @@ from cs336_systems.flash_triton import FlashTorchBwd, FlashTritonBwd
 warnings.filterwarnings("ignore", message="Skipping serialization of skipfiles_inline_module_allowlist")
 
 assert torch.cuda.is_available()
-torch.set_float32_matmul_precision("high")
 device = torch.device("cuda")
+torch.set_float32_matmul_precision("high")
+torch._dynamo.reset()
 DTYPE_MAP = {
     "bfloat16": torch.bfloat16,
     "float32": torch.float32,
@@ -57,6 +58,7 @@ def run(cfg: DictConfig) -> None:
         case "pytorch":
             mask = torch.tril(torch.ones(cfg.context_length, cfg.context_length, dtype=torch.bool, device=device))
 
+            @torch.compile
             def forward():  # type: ignore
                 return scaled_dot_product_attention(q, k, v, mask)
         case "flash_torch_bwd":
@@ -67,10 +69,6 @@ def run(cfg: DictConfig) -> None:
 
             def forward():
                 return FlashTritonBwd.apply(q, k, v, True)
-
-    # So we do not get RecompileLimitExceeded
-    torch._dynamo.reset()
-    forward = torch.compile(forward)
 
     # Forward inference
     try:
