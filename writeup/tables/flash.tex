@@ -1,0 +1,269 @@
+\begin{table}[H]
+\caption{forward float32 time in ms (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{lllll}
+\toprule
+Context & 128 & 256 & 512 & 1024 \\
+Dimension &  &  &  &  \\
+\midrule
+16 & 42.3 / 84.0 / 112.3 & 71.8 / 97.6 / 108.3 & 81.8 / 146.0 / 102.9 & 82.3 / 111.9 / 110.0 \\
+32 & 61.5 / 82.7 / 106.7 & 67.4 / 141.2 / 114.0 & 68.9 / 99.5 / 125.9 & 80.6 / 103.4 / 144.7 \\
+64 & 71.9 / 84.7 / 102.8 & 71.0 / 146.1 / 110.1 & 77.0 / 111.4 / 122.3 & 80.4 / 152.2 / 119.2 \\
+128 & 74.0 / 82.7 / 108.7 & 62.9 / 158.6 / 109.3 & 66.7 / 105.0 / 118.9 & 90.9 / 112.9 / 117.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward float32 time in ms (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 2048 & 4096 & 8192 \\
+Dimension &  &  &  \\
+\midrule
+16 & 137.8 / 147.1 / 130.6 & 592.8 / 118.9 / 126.3 & 2232.9 / 315.1 / 315.7 \\
+32 & 139.6 / 113.8 / 118.0 & 592.7 / 153.1 / 164.0 & 2237.5 / 395.9 / 395.5 \\
+64 & 142.4 / 105.0 / 115.8 & 596.8 / 162.0 / 165.8 & 2252.3 / 387.9 / 387.4 \\
+128 & 150.0 / 113.3 / 129.0 & 611.0 / 225.5 / 224.6 & 2259.5 / 826.3 / 819.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward float32 time in ms (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 16384 & 32768 & 65536 \\
+Dimension &  &  &  \\
+\midrule
+16 & 8664.0 / 988.8 / 988.6 & 34441.4 / 3304.0 / 3332.8 & 140241.2 / 12921.7 / 14674.7 \\
+32 & 8697.3 / 1348.4 / 1349.2 & 34712.4 / 4459.0 / 4621.0 & 141691.0 / 17526.8 / 21094.3 \\
+64 & 8881.4 / 1386.5 / 1410.9 & 35660.8 / 4557.7 / 4748.0 & 146422.2 / 18323.9 / 27142.8 \\
+128 & 8863.3 / 2584.2 / 2609.3 & 36622.9 / 8827.9 / 9358.3 & 144180.9 / 40416.3 / 40508.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward bfloat16 time in ms (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{lllll}
+\toprule
+Context & 128 & 256 & 512 & 1024 \\
+Dimension &  &  &  &  \\
+\midrule
+16 & 45.3 / 85.4 / 87.5 & 76.8 / 86.8 / 106.1 & 74.0 / 88.3 / 95.4 & 74.8 / 101.0 / 125.9 \\
+32 & 69.9 / 82.7 / 113.2 & 74.4 / 88.4 / 104.3 & 81.3 / 87.1 / 105.7 & 82.3 / 88.7 / 109.1 \\
+64 & 77.1 / 87.4 / 108.4 & 70.6 / 93.4 / 111.7 & 74.0 / 87.6 / 125.4 & 83.6 / 91.0 / 117.2 \\
+128 & 77.9 / 84.8 / 107.8 & 62.1 / 98.1 / 103.6 & 77.2 / 88.9 / 107.9 & 80.5 / 103.6 / 120.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward bfloat16 time in ms (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 2048 & 4096 & 8192 \\
+Dimension &  &  &  \\
+\midrule
+16 & 124.7 / 97.8 / 110.0 & 382.3 / 95.9 / 124.1 & 1442.3 / 197.7 / 198.9 \\
+32 & 125.3 / 97.0 / 112.6 & 382.3 / 95.9 / 113.5 & 1441.0 / 199.8 / 199.8 \\
+64 & 125.4 / 94.3 / 114.3 & 382.1 / 99.6 / 122.3 & 1447.0 / 236.2 / 236.2 \\
+128 & 122.8 / 97.8 / 114.8 & 384.4 / 165.8 / 169.3 & 1448.2 / 615.8 / 625.7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward bfloat16 time in ms (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 16384 & 32768 & 65536 \\
+Dimension &  &  &  \\
+\midrule
+16 & 5344.0 / 515.4 / 510.5 & 20914.6 / 1627.4 / 1608.6 & 90275.4 / 5450.6 / 5607.5 \\
+32 & 5354.4 / 531.6 / 530.7 & 21295.4 / 1666.9 / 1667.9 & 92260.6 / 5760.5 / 6309.2 \\
+64 & 5368.0 / 742.4 / 743.9 & 22200.0 / 2244.7 / 2286.5 & 97241.0 / 7802.4 / 9784.7 \\
+128 & 5426.1 / 1780.5 / 1787.5 & 22855.7 / 5724.3 / 5656.8 & 102297.4 / 23283.3 / 25387.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{backward float32 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{lllll}
+\toprule
+Context & 128 & 256 & 512 & 1024 \\
+Dimension &  &  &  &  \\
+\midrule
+16 & 0.9 / 0.5 / 0.5 & 0.9 / 1.2 / 1.2 & 1.0 / 1.3 / 1.2 & 0.9 / 0.4 / 1.3 \\
+32 & 0.9 / 1.2 / 0.5 & 0.9 / 1.3 / 1.2 & 0.9 / 0.4 / 1.3 & 0.9 / 0.4 / 2.2 \\
+64 & 1.0 / 0.6 / 0.5 & 0.9 / 1.3 / 1.2 & 0.9 / 0.4 / 1.4 & 1.0 / 1.2 / 1.2 \\
+128 & 0.9 / 0.3 / 0.5 & 0.8 / 1.3 / 0.7 & 0.9 / 0.4 / 1.5 & 1.0 / 0.4 / 1.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{backward float32 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 2048 & 4096 & 8192 \\
+Dimension &  &  &  \\
+\midrule
+16 & 1.0 / 0.4 / 1.1 & 1.2 / 0.4 / 1.1 & 4.6 / 1.4 / 1.3 \\
+32 & 1.0 / 0.4 / 1.2 & 1.2 / 0.4 / 1.2 & 4.6 / 1.4 / 1.2 \\
+64 & 1.0 / 0.4 / 1.2 & 1.9 / 0.5 / 1.2 & 4.6 / 1.4 / 1.9 \\
+128 & 0.9 / 0.4 / 1.2 & 2.1 / 0.5 / 1.3 & 4.6 / 1.5 / 3.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{backward float32 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 16384 & 32768 & 65536 \\
+Dimension &  &  &  \\
+\midrule
+16 & 18.1 / 5.5 / 1.5 & 72.2 / 21.7 / 5.0 & OOM / 87.7 / 21.5 \\
+32 & 18.1 / 5.6 / 2.7 & 72.5 / 22.1 / 8.9 & OOM / 89.5 / 34.7 \\
+64 & 18.3 / 5.8 / 6.2 & 73.0 / 22.8 / 22.3 & OOM / 92.7 / 99.3 \\
+128 & 18.3 / 6.0 / 12.6 & 72.9 / 24.0 / 46.2 & OOM / 91.5 / 190.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{backward bfloat16 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{lllll}
+\toprule
+Context & 128 & 256 & 512 & 1024 \\
+Dimension &  &  &  &  \\
+\midrule
+16 & 1.0 / 0.5 / 0.6 & 0.9 / 0.4 / 1.2 & 0.9 / 1.4 / 0.9 & 1.0 / 0.5 / 1.3 \\
+32 & 0.9 / 2.0 / 0.6 & 0.9 / 1.4 / 1.2 & 0.9 / 0.5 / 1.2 & 1.0 / 0.5 / 2.1 \\
+64 & 0.9 / 0.7 / 0.6 & 0.8 / 1.4 / 0.8 & 1.0 / 0.5 / 1.5 & 0.9 / 1.3 / 1.2 \\
+128 & 0.9 / 0.5 / 0.6 & 0.9 / 1.3 / 0.8 & 1.0 / 0.5 / 1.4 & 1.0 / 0.5 / 1.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{backward bfloat16 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 2048 & 4096 & 8192 \\
+Dimension &  &  &  \\
+\midrule
+16 & 1.0 / 0.5 / 1.1 & 1.0 / 0.5 / 1.2 & 2.8 / 1.3 / 1.0 \\
+32 & 0.9 / 0.5 / 0.9 & 1.1 / 0.5 / 1.2 & 2.8 / 1.3 / 1.3 \\
+64 & 0.9 / 0.5 / 1.2 & 1.0 / 0.6 / 1.3 & 2.8 / 1.3 / 1.7 \\
+128 & 1.0 / 0.5 / 1.2 & 2.0 / 0.6 / 1.3 & 2.8 / 1.4 / 3.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{backward bfloat16 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 16384 & 32768 & 65536 \\
+Dimension &  &  &  \\
+\midrule
+16 & 10.8 / 4.9 / 1.9 & 42.7 / 19.3 / 6.0 & 181.4 / 77.5 / 21.2 \\
+32 & 10.8 / 5.0 / 2.7 & 43.2 / 19.7 / 8.7 & 182.7 / 78.8 / 34.0 \\
+64 & 10.8 / 5.2 / 5.6 & 45.0 / 20.2 / 19.9 & 185.1 / 81.5 / 82.3 \\
+128 & 10.8 / 5.3 / 8.8 & 46.4 / 21.1 / 29.4 & 185.7 / 82.0 / 114.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward-backward float32 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{lllll}
+\toprule
+Context & 128 & 256 & 512 & 1024 \\
+Dimension &  &  &  &  \\
+\midrule
+16 & 1.8 / 1.5 / 1.7 & 1.8 / 3.1 / 2.1 & 1.8 / 3.2 / 2.1 & 1.9 / 1.5 / 2.4 \\
+32 & 1.8 / 3.2 / 1.8 & 1.8 / 3.2 / 1.8 & 1.8 / 1.5 / 2.1 & 1.8 / 1.5 / 2.7 \\
+64 & 1.8 / 1.7 / 1.8 & 1.8 / 3.2 / 2.2 & 1.9 / 1.5 / 2.5 & 1.9 / 3.2 / 2.1 \\
+128 & 1.8 / 1.5 / 1.7 & 1.8 / 3.2 / 1.6 & 1.8 / 1.6 / 2.4 & 1.8 / 1.6 / 2.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward-backward float32 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 2048 & 4096 & 8192 \\
+Dimension &  &  &  \\
+\midrule
+16 & 1.8 / 1.5 / 2.1 & 1.9 / 1.6 / 2.0 & 6.9 / 1.8 / 2.1 \\
+32 & 1.8 / 1.5 / 2.1 & 1.9 / 1.6 / 2.1 & 6.9 / 1.9 / 2.2 \\
+64 & 1.9 / 1.6 / 2.1 & 3.6 / 1.7 / 2.2 & 6.9 / 1.8 / 2.3 \\
+128 & 1.9 / 1.5 / 2.1 & 3.7 / 1.6 / 2.1 & 6.9 / 2.4 / 4.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward-backward float32 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 16384 & 32768 & 65536 \\
+Dimension &  &  &  \\
+\midrule
+16 & 26.7 / 6.5 / 2.4 & 106.5 / 25.1 / 8.4 & OOM / 101.4 / 36.5 \\
+32 & 26.8 / 6.9 / 4.1 & 107.1 / 26.6 / 13.3 & OOM / 107.7 / 61.2 \\
+64 & 27.2 / 7.2 / 7.6 & 108.1 / 27.5 / 26.7 & OOM / 111.7 / 131.7 \\
+128 & 27.1 / 8.6 / 15.2 & 110.4 / 33.4 / 55.5 & OOM / 130.4 / 244.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward-backward bfloat16 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{lllll}
+\toprule
+Context & 128 & 256 & 512 & 1024 \\
+Dimension &  &  &  &  \\
+\midrule
+16 & 1.8 / 1.5 / 1.9 & 1.8 / 1.6 / 2.2 & 1.8 / 3.4 / 2.0 & 1.8 / 1.6 / 2.7 \\
+32 & 1.8 / 3.4 / 1.7 & 1.8 / 3.4 / 2.2 & 1.8 / 1.6 / 2.2 & 1.8 / 1.6 / 3.8 \\
+64 & 1.8 / 1.8 / 1.7 & 1.8 / 3.4 / 2.0 & 1.8 / 1.6 / 2.7 & 1.9 / 3.4 / 2.2 \\
+128 & 1.8 / 1.7 / 1.7 & 1.8 / 3.4 / 1.7 & 1.8 / 1.6 / 2.6 & 1.9 / 1.6 / 2.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward-backward bfloat16 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 2048 & 4096 & 8192 \\
+Dimension &  &  &  \\
+\midrule
+16 & 1.8 / 1.6 / 2.1 & 2.0 / 1.7 / 2.1 & 4.3 / 2.1 / 2.2 \\
+32 & 1.9 / 1.6 / 2.1 & 2.1 / 1.7 / 2.2 & 4.3 / 2.0 / 2.2 \\
+64 & 1.9 / 1.7 / 2.2 & 2.1 / 1.8 / 2.3 & 4.3 / 2.1 / 2.2 \\
+128 & 2.0 / 1.8 / 2.2 & 3.7 / 1.8 / 2.2 & 4.3 / 2.1 / 3.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\caption{forward-backward bfloat16 time in s (naive pytorch / flash torch back / flash all triton)}
+\begin{tabular}{llll}
+\toprule
+Context & 16384 & 32768 & 65536 \\
+Dimension &  &  &  \\
+\midrule
+16 & 16.1 / 5.4 / 2.3 & 65.4 / 20.9 / 7.5 & 275.2 / 83.5 / 27.0 \\
+32 & 16.1 / 5.5 / 3.2 & 65.6 / 21.4 / 10.6 & 281.6 / 85.5 / 40.2 \\
+64 & 16.2 / 5.9 / 6.3 & 68.3 / 22.5 / 22.0 & 286.5 / 89.6 / 93.5 \\
+128 & 16.3 / 7.1 / 10.8 & 71.1 / 26.8 / 35.0 & 294.0 / 108.0 / 142.6 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -328,9 +328,40 @@ but less so for larger models and contexts.  It has virtually no effect on the o
 \end{enumerate}
 
 \subsubsection*{Problem (flash\_forward)}
-\subsubsection*{Problem (flash\_backward)}
-\subsubsection*{Problem (flash\_benchmarking)}
+\textbf{Code:} 
+\begin{itemize}
+\item \texttt{cs336\_systems/flash\_pytorch.py}
+\item \texttt{cs336\_systems/flash\_triton.py}
+\end{itemize}
 
+\subsubsection*{Problem (flash\_backward)}
+\textbf{Code:} \texttt{cs336\_systems/flash\_triton.py}
+
+\subsubsection*{Problem (flash\_benchmarking)}
+\textbf{Code:}
+\begin{itemize}
+\item \texttt{cs336\_systems/benchmark\_flash.py}
+\item \texttt{cs336\_systems/benchmark\_flash.sh}
+\item \texttt{cs336\_systems/benchmark\_flash.ipynb}
+\end{itemize}
+
+The general conclusions are:
+
+\begin{itemize}
+\item The pytorch implementation is OK for short sequences, but takes increasingly more time with longer ones, eventually getting OOM in the backward
+pass with sequence length 65536.
+\item The forward pass of the two implementations of flash attention (compiled torch backward and triton backward passes) is the same, yet I got very
+different results for the two.  I am not sure where this is coming from.
+\item The Triton backward pass shines where parallelism matters: longer contexts and smaller inner dimensions.  The pytorch compiled version is better
+in the opposite scenarios (shorter contexts / larger inner dimensions).
+\end{itemize}
+
+\input{tables/flash.tex}
+
+\subsubsection*{Leaderboard}
+On an H-100, I got 48.3ms with the Triton implementation of both forward and backward passes.  I did not perform any further improvements (except for autotuning),
+so the result is expectedly worse than the top 5 leaderboard times.  With triton forward and pytorch backward passes, I got 83.7ms, which roughly corresponds
+to the 80ms naïve baseline (with \texttt{torch.set\_float32\_matmul\_precision("high")}).
 \setcounter{section}{2}
 \setcounter{subsection}{0}
 
