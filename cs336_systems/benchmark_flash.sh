@@ -1,4 +1,4 @@
-export TRITON_PRINT_AUTOTUNE=1
+export TRITON_PRINT_AUTOTUNING=1
 
 python benchmark_flash.py -m \
     attention=pytorch,flash_torch_bwd,flash_triton_bwd \

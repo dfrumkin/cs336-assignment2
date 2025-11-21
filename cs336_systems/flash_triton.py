@@ -47,7 +47,7 @@ CONFIGS_BWD = [
 ]
 
 
-@triton.autotune(configs=CONFIGS_FWD, key=["Q_TILE_SIZE", "K_TILE_SIZE"])
+@triton.autotune(configs=CONFIGS_FWD, key=["D"])
 @triton.jit
 def flash_fwd_kernel(
     Q_ptr,
@@ -185,7 +185,7 @@ def flash_fwd_kernel(
 
 @triton.autotune(
     configs=CONFIGS_BWD,
-    key=["Q_TILE_SIZE", "K_TILE_SIZE"],
+    key=["D"],
     reset_to_zero=["dQ_ptr"],  # Important!!!  We are adding and not storing!
 )
 @triton.jit
