@@ -18,7 +18,6 @@ warnings.filterwarnings("ignore", message="Skipping serialization of skipfiles_i
 assert torch.cuda.is_available()
 device = torch.device("cuda")
 torch.set_float32_matmul_precision("high")
-torch._dynamo.reset()
 torch._dynamo.config.cache_size_limit = 256  # type: ignore
 DTYPE_MAP = {
     "bfloat16": torch.bfloat16,
