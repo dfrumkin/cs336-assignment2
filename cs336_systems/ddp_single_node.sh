@@ -1,0 +1,1 @@
+python ddp_single_node.py -m backend=gloo,nccl tensor_size=1MiB,10MiB,100MiB,1GiB world_size=2,4,6
