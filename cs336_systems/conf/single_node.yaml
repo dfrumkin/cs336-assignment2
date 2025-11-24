@@ -1,6 +1,6 @@
 num_warmup_steps: 5
 num_measurement_steps: 10
-out_path: ddp_single_node.csv
+out_path: single_node.csv
 backend: ??
 tensor_size: ??
 world_size: ??

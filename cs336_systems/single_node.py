@@ -37,7 +37,8 @@ def ddp_single_node(rank, cfg, results: dict[str, str | float]) -> None:
 
     if backend == "nccl":
         assert world_size <= torch.cuda.device_count()
-        device = torch.device("cuda")
+        torch.cuda.set_device(rank)
+        device = torch.device("cuda", rank)
         sync = torch.cuda.synchronize
     else:
         assert backend == "gloo"
@@ -87,6 +88,10 @@ def ddp_single_node(rank, cfg, results: dict[str, str | float]) -> None:
             writer.writerow(results)
 
         print(f"Finished: {results}")
+
+    # Not strictly necessary for a simple script
+    dist.barrier()
+    dist.destroy_process_group()
 
 
 @main(config_path="conf", config_name="ddp_single_node", version_base=None)

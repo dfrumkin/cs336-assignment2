@@ -1,0 +1,1 @@
+python ddp_benchmark.sh -m model=xl backend=nccl batch_size=2,4,8,16,32

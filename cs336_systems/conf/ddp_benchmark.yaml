@@ -1,0 +1,22 @@
+defaults:
+  - _self_
+  - model: ??
+  - override hydra/job_logging: disabled
+  - override hydra/hydra_logging: disabled
+
+batch_size: ??
+num_warmup_steps: 5
+num_measurement_steps: 10
+world_size: 2
+backend: ??
+out_path: ddp_benchmark.csv
+
+model:
+  _target_: cs336_basics.model.BasicsTransformerLM
+  vocab_size: 10000
+  context_length: 256
+  d_model: ??
+  num_layers: ??
+  num_heads: ??
+  d_ff: ??
+  rope_theta: 10000
