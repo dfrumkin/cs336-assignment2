@@ -9,6 +9,7 @@ num_warmup_steps: 5
 num_measurement_steps: 10
 world_size: 2
 backend: ??
+flat: ??
 out_path: ddp_benchmark.csv
 
 model:

@@ -92,10 +92,26 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
         sync()
 
         t1 = default_timer()
-        for p in model.parameters():
-            if p.grad is not None:
-                dist.all_reduce(p.grad)
-                p.grad.div_(world_size)
+        if cfg.flat:
+            # Here, we assume that gradients are dense.
+            # In our implementation embedding gradients are dense, though they could be sparse.
+            grads = [p.grad for p in model.parameters() if p.grad is not None]
+
+            if grads:
+                flat = torch._utils._flatten_dense_tensors([g.contiguous() for g in grads])  # type: ignore
+                dist.all_reduce(flat)
+                flat.div_(world_size)
+                for g, g_flat in zip(
+                    grads,
+                    torch._utils._unflatten_dense_tensors(flat, grads),  # type: ignore
+                    strict=True,
+                ):
+                    g.copy_(g_flat)
+        else:
+            for p in model.parameters():
+                if p.grad is not None:
+                    dist.all_reduce(p.grad)
+                    p.grad.div_(world_size)
 
         sync()
         t2 = default_timer()
