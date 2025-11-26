@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - model: ??
+  - model: xl
   - override hydra/job_logging: disabled
   - override hydra/hydra_logging: disabled
 
@@ -8,8 +8,10 @@ batch_size: ??
 num_warmup_steps: 5
 num_measurement_steps: 10
 world_size: 2
-backend: ??
-flat: ??
+backend: nccl
+sync_type: ??
+bucket_size_mb: None
+
 out_path: ddp_benchmark.csv
 
 model:

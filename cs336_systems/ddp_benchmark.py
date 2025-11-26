@@ -14,6 +14,9 @@ from jaxtyping import Int
 from omegaconf import DictConfig
 from torch import Tensor
 
+from cs336_systems.ddp_overlap_bucketed import DDPOverlapBucketed
+from cs336_systems.ddp_overlap_individual import DDPOverlapIndividual
+
 
 def get_rand_tokens(cfg: DictConfig, device: torch.device) -> Int[Tensor, "batch_length sequence_length"]:
     return torch.randint(
@@ -45,6 +48,12 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
     # Note: we are using just one node => rank == local_rank
     world_size = cfg.world_size
     local_batch_size = cfg.batch_size // world_size
+
+    assert cfg.sync_type in ("individual", "batch", "overlap_individual", "overlap_bucketed")
+    overlap_individual = cfg.sync_type == "overlap_individual"
+    overlap_bucketed = cfg.sync_type == "overlap_bucketed"
+    sync_batch = cfg.sync_type == "batch"
+
     if cfg.backend == "nccl":
         assert cfg.world_size <= torch.cuda.device_count()
         torch.cuda.set_device(rank)
@@ -65,9 +74,14 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
     torch.manual_seed(rank)
     model = instantiate(cfg.model).to(device)
 
-    with torch.no_grad():
-        for p in model.parameters():
-            dist.broadcast(p, src=0)
+    if overlap_individual:
+        model = DDPOverlapIndividual(model)
+    elif overlap_bucketed:
+        model = DDPOverlapBucketed(model, bucket_size_mb=cfg.bucket_size_mb)
+    else:
+        with torch.no_grad():
+            for p in model.parameters():
+                dist.broadcast(p, src=0)
 
     optim = torch.optim.AdamW(model.parameters())
     step_times = []
@@ -91,30 +105,34 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
         loss.backward()
         sync()
 
-        t1 = default_timer()
-        if cfg.flat:
-            # Here, we assume that gradients are dense.
-            # In our implementation embedding gradients are dense, though they could be sparse.
-            grads = [p.grad for p in model.parameters() if p.grad is not None]
-
-            if grads:
-                flat = torch._utils._flatten_dense_tensors([g.contiguous() for g in grads])  # type: ignore
-                dist.all_reduce(flat)
-                flat.div_(world_size)
-                for g, g_flat in zip(
-                    grads,
-                    torch._utils._unflatten_dense_tensors(flat, grads),  # type: ignore
-                    strict=True,
-                ):
-                    g.copy_(g_flat)
+        if overlap_individual or overlap_bucketed:
+            t1 = t2 = 0.0  # No way to separate the communication overhead; using Nsight instead.
+            model.finish_gradient_synchronization()
         else:
-            for p in model.parameters():
-                if p.grad is not None:
-                    dist.all_reduce(p.grad)
-                    p.grad.div_(world_size)
+            t1 = default_timer()
+            if sync_batch:
+                # Here, we assume that gradients are dense.
+                # In our implementation, embedding gradients are dense, though they could be sparse.
+                grads = [p.grad for p in model.parameters() if p.grad is not None]
 
-        sync()
-        t2 = default_timer()
+                if grads:
+                    flat = torch._utils._flatten_dense_tensors([g.contiguous() for g in grads])  # type: ignore
+                    dist.all_reduce(flat)
+                    flat.div_(world_size)
+                    for g, g_flat in zip(
+                        grads,
+                        torch._utils._unflatten_dense_tensors(flat, grads),  # type: ignore
+                        strict=True,
+                    ):
+                        g.copy_(g_flat)
+            else:
+                for p in model.parameters():
+                    if p.grad is not None:
+                        dist.all_reduce(p.grad)
+                        p.grad.div_(world_size)
+
+            sync()
+            t2 = default_timer()
 
         optim.step()
         sync()
