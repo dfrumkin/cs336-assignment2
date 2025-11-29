@@ -373,21 +373,166 @@ to the 80ms naïve baseline (with \texttt{torch.set\_float32\_matmul\_precision(
 \subsubsection*{Problem (naive\_ddp\_benchmarking)}
 
 \subsection{Improving Upon the Minimal DDP Implementation}
+
+TODO
+
 \subsubsection*{Problem (minimal\_ddp\_flat\_benchmarking)}
+
+TODO
+
 \subsubsection*{Problem (ddp\_overlap\_individual\_parameters)}
+
+TODO
+
 \subsubsection*{Problem (ddp\_overlap\_individual\_parameters\_benchmarking)}
+
+TODO
+
 \subsubsection*{Problem (ddp\_overlap\_bucketed)}
+
+TODO
+
 \subsubsection*{Problem (ddp\_bucketed\_benchmarking)}
+\begin{enumerate}[label=(\alph*)]
+    \item \textbf{Benchmark your bucketed DDP implementation using the same config as the previous experiments
+(1 node, 2 GPUs, XL model size), varying the maximum bucket size (1, 10, 100, 1000 MB).
+Compare your results to the previous experiments without bucketing—do the results align with
+your expectations? If they don't align, why not? You may have to use the PyTorch profiler as
+necessary to better understand how communication calls are ordered and/or executed. What
+changes in the experimental setup would you expect to yield results that are aligned with your
+expectations?}
+
+TODO
+
+    \item \textbf{Assume that the time it takes to compute the gradients for a bucket is identical to the time it
+takes to communicate the gradient buckets. Write an equation that models the communication
+overhead of DDP (i.e., the amount of additional time spent after the backward pass) as a function
+of the total size (bytes) of the model parameters ($s$), the all-reduce algorithm bandwidth ($w$,
+computed as the size of each rank's data divided by the time it takes to finish the all-reduce), the
+overhead (seconds) associated with each communication call ($o$), and the number of buckets ($n_b$).
+From this equation, write an equation for the optimal bucket size that minimizes DDP overhead.}
+
+For simplicity, let us make an additional assumption that all the buckets have the same size $\frac{s}{n_b}$.
+Then the DDP overhead is composed of the overhead per bucket plus the time it takes to communicate the last bucket:
+
+$\boxed{T = n_bo + \frac{s}{n_bw}}$
+
+$T \rightarrow \infty$ when $n_b \rightarrow 0$ or $n_b \rightarrow \infty$; therefore the minimimum is achieved when $\frac{dT}{dn_b}=0$:
+
+$\frac{dT}{dn_b}=0 \Leftrightarrow o - \frac{s}{n_b^2w} = 0 \Leftrightarrow n_b = \sqrt{\frac{s}{ow}}$
+
+Therefore, the optimal batch size is $\frac{s}{\sqrt{\frac{s}{ow}}}$: $\boxed{B = \sqrt{sow}}$.
+
+\end{enumerate}
 
 \subsection{4D Parallelism}
 \subsubsection*{Problem (communication\_accounting)}
+\begin{enumerate}[label=(\alph*)]
+    \item \textbf{How much memory would it take to store the master model weights, accumulated gradients and
+optimizer states in FP32 on a single device? How much memory is saved for backward (these will
+be in BF16)? How many H100 80GB GPUs worth of memory is this?}
 
+Number of weights: $W = 2 \times num\_blocks \times d_{\text{model}} \times d_{\text{ff}} = 3276 \times 2^{26}$
+
+Memory for weights, accumulated gradients, and optimizer states: 
+
+$M_1 = \frac{4 \times 4 \times W}{2^{30}} = 3276$ (GB)
+
+Activations per token: 
+
+$A = num\_blocks \times (d_{\text{model}} + d_{\text{ff}}) = 1071 \times 2^{13}$
+
+For the given batch size ($B$) and sequence length ($L$), the memory needed for activations is:
+
+$M_2 = \frac{2 \times BL \times A}{2^{30}} = \frac{1071BL}{2^{16}}$ (GB)
+
+The number of H100 80GB GPUs needed:
+
+$N = \left\lceil\frac{3276 + \frac{1071BL}{2^{16}}}{80}\right\rceil$
+
+For our huge model, if we have 1M tokens/step, e.g. $B=512$ and $L=2048$, then 
+
+$N=\left\lceil\frac{3276 + 17136}{80}\right\rceil = 256$ (H100 80GB GPUs)
+
+\item \textbf{Now assume your master weights, optimizer state, gradients and half of your activations (in
+practice every second layer) are sharded across $N_{\text{FSDP}}$ devices. Write an expression for how
+much memory this would take per device. What value does $N_{\text{FSDP}}$ need to be for the total
+memory cost to be less than 1 v5p TPU (95GB per device)?}
+
+Per device, we would need 
+
+$M_{\text{device}} = \frac{M_1 + \frac{M_2}{2}}{N_{\text{FSDP}}} = \frac{3276 + \frac{1071BL}{2^{17}}}{N_{\text{FSDP}}}$ (GB)
+
+For $M_{\text{device}} \leq 95$, we would need at least $N_{\text{FSDP}} = \left\lceil \frac{3276 + \frac{1071BL}{2^{17}}}{95} \right\rceil$ devices.
+
+For example, with our earlier choice of $BL=2^{20}$, we get 
+
+$N_{\text{FSDP}} = \left\lceil \frac{3276 + 1071 \times 8}{95} \right\rceil = 125$ (devices).
+
+\item \textbf{Consider only the forward pass. Use the communication bandwidth of $W_{\text{ici}} = 2 \cdot 9 \cdot 10^{10}$ and
+FLOPS/s of $C = 4.6 \cdot 10^{14}$ for TPU v5p as given in the TPU Scaling Book. Following the
+notation of the Scaling Book, use $M_X = 2$, $M_Y = 1$ (a 3D mesh), with $X = 16$ being your FSDP
+dimension, and $Y = 4$ being your TP dimension. At what per-device batch size is this model
+compute bound? What is the overall batch size in this setting?}
+
+The TPU scaling book gives the following compute-bound inequality:
+
+$\frac{B}{N} > \frac{\alpha^2}{M_XM_YF}$
+
+Here, $N=XY$ is the total number of chips, $\alpha=\frac{C}{W_{\text{ici}}}$ is the ICI arithmetic intensity, and $F=d_{\text{ff}}$ is the feed-forward dimension.
+Thus, $\frac{B}{N} > 61.325$.  For the microbatch size of 62, the overall batch size is $62 \times 16 \times 4 = 3968$.
+
+\item \textbf{In practice, we want the overall batch size to be as small as possible, and we also always use our
+compute effectively (in other words we want to never be communication bound).  
+What other tricks can we employ to reduce the batch size of our model but retain high throughput?}
+
+The batch should be large enough to have low noise per step; however, once the noise is low, further increasing the batch size will result in 
+wasteful computation.
+
+$eff\_batch = microbatch \times grad\_acc \times world\_size$.
+
+To keep the effective batch small while retaining high throughput:
+
+\begin{itemize}
+\item Increase the microbatch size and reduce the frequency of gradient 
+synchronization, and / or choose a smaller data-parallel world size.
+
+\item Use activation checkpointing, i.e. recompute activations instead of storing them to help us increase the microbatch size without running out of memory.
+
+\item Use other types of model parallelism, such as pipeline and expert (if relevant), to help us remain computation bound without increasing the batch size.
+\end{itemize}
+
+\end{enumerate}
 {
 \renewcommand{\thesubsection}{3}
 \subsection{Optimizer State Sharding}
 }
 
 \subsubsection*{Problem (optimizer\_state\_sharding)}
+
+\textbf{Code:} \texttt{cs336\_systems/sharded\_optimizer.py}
+
 \subsubsection*{Problem (optimizer\_state\_sharding\_accounting)}
+
+\begin{enumerate}[label=(\alph*)]
+\item \textbf{Create a script to profile the peak memory usage when training language models with and without
+optimizer state sharding. Using the standard configuration (1 node, 2 GPUs, XL model size),
+34
+report the peak memory usage after model initialization, directly before the optimizer step, and
+directly after the optimizer step. Do the results align with your expectations? Break down the
+memory usage in each setting (e.g., how much memory for parameters, how much for optimizer
+states, etc.).}
+
+TODO
+
+\item \textbf{How does our implementation of optimizer state sharding affect training speed?}
+
+TODO
+
+\item \textbf{How does our approach to optimizer state sharding differ from ZeRO stage 1 (described as ZeRO-
+DP $P_{os}$ in Rajbhandari et al., 2020)?}
+
+TODO
+\end{enumerate}
 
 \end{document}
