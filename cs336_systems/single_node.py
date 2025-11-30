@@ -27,7 +27,7 @@ def get_sweep_params() -> dict[str, str]:
     return dict(sorted(out.items()))
 
 
-def ddp_single_node(rank, cfg, results: dict[str, str | float]) -> None:
+def single_node(rank, cfg, results: dict[str, str | float]) -> None:
     if rank == 0:
         print(f"Starting: {results}")
 
@@ -94,11 +94,11 @@ def ddp_single_node(rank, cfg, results: dict[str, str | float]) -> None:
     dist.destroy_process_group()
 
 
-@main(config_path="conf", config_name="ddp_single_node", version_base=None)
+@main(config_path="conf", config_name="single_node", version_base=None)
 def run(cfg: DictConfig) -> None:
     results = get_sweep_params()
     mp.spawn(  # type: ignore
-        fn=ddp_single_node,
+        fn=single_node,
         args=(cfg, results),
         nprocs=cfg.world_size,
         join=True,
