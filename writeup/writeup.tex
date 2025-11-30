@@ -368,12 +368,31 @@ to the 80ms naïve baseline (with \texttt{torch.set\_float32\_matmul\_precision(
 \subsection{Single-Node Distributed Communication in PyTorch}
 \subsubsection*{Problem (distributed\_communication\_single\_node)}
 
-TODO
+\textbf{Code:} 
+\begin{itemize}
+\item \texttt{cs336\_systems/single\_node.sh}
+\item \texttt{cs336\_systems/single\_node.py}
+\item \texttt{cs336\_systems/single\_node.ipynb}
+\end{itemize}
+
+Using an 8-GPU 40GB A100 SXM4 instance, I got the following results:
+
+\input{tables/single_node.tex}
+
+Comments:
+\begin{itemize}
+\item Using GPUs (NCCL) is orders of magnitude faster than using a CPU (NCCL).
+\item Time grows significantly (roughly linearly) with tensor size - more rapidly on a CPU.
+\item Time grows mildly with the world size - again more rapidly on a CPU.
+\end{itemize}
 
 \subsection{A Naïve Implementation of Distributed Data Parallel Training}
-\subsubsection*{Problem (naive\_ddp)}
 
-TODO
+\textbf{Code:} 
+\begin{itemize}
+\item \texttt{cs336\_systems/ddp\_benchmark.py}
+\item \texttt{cs336\_systems/ddp\_benchmark.sh}
+\end{itemize}
 
 \subsubsection*{Problem (naive\_ddp\_benchmarking)}
 
@@ -381,7 +400,11 @@ TODO
 
 \subsection{Improving Upon the Minimal DDP Implementation}
 
-TODO
+\textbf{Code:} 
+\begin{itemize}
+\item \texttt{cs336\_systems/ddp\_benchmark.py}
+\item \texttt{cs336\_systems/ddp\_benchmark.sh}
+\end{itemize}
 
 \subsubsection*{Problem (minimal\_ddp\_flat\_benchmarking)}
 
