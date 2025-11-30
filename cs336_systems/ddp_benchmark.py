@@ -190,6 +190,7 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
         comm_time_mean = comm_times_tensor.mean().item() * 1000
         comm_time_std = comm_times_tensor.std().item() * 1000
         comm_time_frac = (comm_times_tensor.sum() / step_times_tensor.sum()).item()
+        mem_peak_init, mem_peak_before_optim, mem_peak_after_optim = mem.cpu().tolist()
 
         results.update(
             {
@@ -198,6 +199,9 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
                 "comm_time_mean": comm_time_mean,
                 "comm_time_std": comm_time_std,
                 "comm_time_frac": comm_time_frac,
+                "mem_peak_init": mem_peak_init,
+                "mem_peak_before_optim": mem_peak_before_optim,
+                "mem_peak_after_optim": mem_peak_after_optim,
             }
         )
         results = dict(sorted(results.items()))
@@ -212,12 +216,6 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
                 writer.writeheader()
             writer.writerow(results)
 
-        # Memory:
-        mem_peak_init, mem_peak_before_optim, mem_peak_after_optim = mem.cpu().tolist()
-        print(
-            f"Memory (MB): init {mem_peak_init:.1f}, before optim {mem_peak_before_optim:.1f}, "
-            f"after optim {mem_peak_after_optim:.1f}"
-        )
         print(f"Finished: {results}")
 
     # Not strictly necessary for a simple script

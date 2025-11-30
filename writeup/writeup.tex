@@ -368,9 +368,16 @@ to the 80ms naïve baseline (with \texttt{torch.set\_float32\_matmul\_precision(
 \subsection{Single-Node Distributed Communication in PyTorch}
 \subsubsection*{Problem (distributed\_communication\_single\_node)}
 
+TODO
+
 \subsection{A Naïve Implementation of Distributed Data Parallel Training}
 \subsubsection*{Problem (naive\_ddp)}
+
+TODO
+
 \subsubsection*{Problem (naive\_ddp\_benchmarking)}
+
+TODO
 
 \subsection{Improving Upon the Minimal DDP Implementation}
 
@@ -532,7 +539,18 @@ TODO
 \item \textbf{How does our approach to optimizer state sharding differ from ZeRO stage 1 (described as ZeRO-
 DP $P_{os}$ in Rajbhandari et al., 2020)?}
 
-TODO
+Conceptually, it is the same as ZeRO stage 1; however, the implementation is simplified.  They write:
+
+\begin{quotation}
+We perform an all-gather across the data parallel
+process at the end of each training step to get the fully updated parameters across all data
+parallel process.
+\end{quotation}
+
+Our approach broadcasts every parameter individually, which increases the communication cost.
+Doing an all-gather would require all input tensors (one per rank) to have the same shape and the same datatype.
+This could be achieved by flattening / unflattenting parameters using per-datatype buckets.
+
 \end{enumerate}
 
 \end{document}
