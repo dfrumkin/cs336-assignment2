@@ -13,9 +13,13 @@ from hydra.utils import instantiate
 from jaxtyping import Int
 from omegaconf import DictConfig
 from torch import Tensor
+from torch.optim import AdamW
 
 from cs336_systems.ddp_overlap_bucketed import DDPOverlapBucketed
 from cs336_systems.ddp_overlap_individual import DDPOverlapIndividual
+from cs336_systems.sharded_optimizer import ShardedOptimizer
+
+MB = 1024**2
 
 
 def get_rand_tokens(cfg: DictConfig, device: torch.device) -> Int[Tensor, "batch_length sequence_length"]:
@@ -47,6 +51,7 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
     # Initialize the process
     # Note: we are using just one node => rank == local_rank
     world_size = cfg.world_size
+    assert cfg.batch_size % world_size == 0, "batch_size must be divisible by world_size"
     local_batch_size = cfg.batch_size // world_size
 
     assert cfg.sync_type in ("individual", "batch", "overlap_individual", "overlap_bucketed")
@@ -59,6 +64,15 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
         torch.cuda.set_device(rank)
         device = torch.device("cuda", rank)
         sync = torch.cuda.synchronize
+
+        def reset_peak_memory():
+            torch.cuda.reset_peak_memory_stats()
+
+        def get_peak_memory():  # type: ignore
+            torch.cuda.synchronize()
+            peak_memory = torch.cuda.max_memory_allocated()
+            torch.cuda.reset_peak_memory_stats()
+            return peak_memory
     else:
         assert cfg.backend == "gloo"
         device = torch.device("cpu")
@@ -66,11 +80,18 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
         def sync():
             return None
 
+        def reset_peak_memory():
+            return None
+
+        def get_peak_memory():
+            return 0
+
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "29500"
     dist.init_process_group(cfg.backend, rank=rank, world_size=world_size)
 
     # Initialize for training
+    reset_peak_memory()
     torch.manual_seed(rank)
     model = instantiate(cfg.model).to(device)
 
@@ -83,11 +104,17 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
             for p in model.parameters():
                 dist.broadcast(p, src=0)
 
-    optim = torch.optim.AdamW(model.parameters())
+    optim = ShardedOptimizer(model.parameters(), AdamW) if cfg.sharded_optimizer else AdamW(model.parameters())
     step_times = []
     comm_times = []
 
+    mem_peak_init = get_peak_memory()
+    mem_peak_before_optim = 0
+    mem_peak_after_optim = 0
+
     for step in range(cfg.num_warmup_steps + cfg.num_measurement_steps):
+        reset_peak_memory()
+
         # Create data - shard a randomly generated batch
         torch.manual_seed(step)  # Same input data in all workers
         all_x = get_rand_tokens(cfg, device)
@@ -134,7 +161,11 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
             sync()
             t2 = default_timer()
 
+        if step >= cfg.num_warmup_steps:
+            mem_peak_before_optim = max(mem_peak_before_optim, get_peak_memory())
         optim.step()
+        if step >= cfg.num_warmup_steps:
+            mem_peak_after_optim = max(mem_peak_after_optim, get_peak_memory())
         sync()
         t3 = default_timer()
 
@@ -143,11 +174,14 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
             step_times.append(t3 - t0)
             comm_times.append(t2 - t1)
 
-    # Now we want per-iteration MAX over ranks
+    # Now we want per-iteration MAX over ranks for time and memory
     step_times_tensor = torch.tensor(step_times, device=device)
     comm_times_tensor = torch.tensor(comm_times, device=device)
-    dist.all_reduce(step_times_tensor, op=dist.ReduceOp.MAX)
-    dist.all_reduce(comm_times_tensor, op=dist.ReduceOp.MAX)
+    dist.reduce(step_times_tensor, dst=0, op=dist.ReduceOp.MAX)
+    dist.reduce(comm_times_tensor, dst=0, op=dist.ReduceOp.MAX)
+
+    mem = torch.tensor([mem_peak_init, mem_peak_before_optim, mem_peak_after_optim], device=device) / MB
+    dist.reduce(mem, dst=0, op=dist.ReduceOp.MAX)
 
     # Compute and print statistics
     if rank == 0:
@@ -170,15 +204,20 @@ def ddp_benchmark(rank, cfg, results: dict[str, str | float]) -> None:
 
         # Write statistics
         csv_path = Path(cfg.out_path)
-        results = dict(sorted(results.items()))
-
         header = not csv_path.exists()
+
         with csv_path.open("a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=results.keys())
             if header:
                 writer.writeheader()
             writer.writerow(results)
 
+        # Memory:
+        mem_peak_init, mem_peak_before_optim, mem_peak_after_optim = mem.cpu().tolist()
+        print(
+            f"Memory (MB): init {mem_peak_init:.1f}, before optim {mem_peak_before_optim:.1f}, "
+            f"after optim {mem_peak_after_optim:.1f}"
+        )
         print(f"Finished: {results}")
 
     # Not strictly necessary for a simple script

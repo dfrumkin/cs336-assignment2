@@ -10,7 +10,8 @@ num_measurement_steps: 10
 world_size: 2
 backend: nccl
 sync_type: ??
-bucket_size_mb: None
+sharded_optimizer: ??
+bucket_size_mb: null
 
 out_path: ddp_benchmark.csv
 
