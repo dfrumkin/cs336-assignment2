@@ -442,8 +442,19 @@ improvement is small (we are already mostly computation bound), the improvement 
 
     \item \textbf{Nsight profiling}
 
-    TODO
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/No_overlap.png}
+    \caption{Block for Gradient Synchronization}
+\end{figure}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{images/Overlap.png}
+    \caption{Overlap Backward Pass Computation}
+\end{figure}
+
+Here, we clearly see the overlap of NCCL communication kernels with CUDA compute kernels.
 \end{enumerate}
 
 \subsubsection*{Problem (ddp\_overlap\_bucketed)}
@@ -573,6 +584,13 @@ synchronization, and / or choose a smaller data-parallel world size.
 \subsection{Optimizer State Sharding}
 }
 
+\textbf{Code:} 
+\begin{itemize}
+\item \texttt{cs336\_systems/ddp\_benchmark.py}
+\item \texttt{cs336\_systems/ddp\_benchmark.sh}
+\item \texttt{cs336\_systems/ddp\_benchmark.ipynb}
+\end{itemize}
+
 \subsubsection*{Problem (optimizer\_state\_sharding)}
 
 \textbf{Code:} \texttt{cs336\_systems/sharded\_optimizer.py}
@@ -588,11 +606,27 @@ directly after the optimizer step. Do the results align with your expectations? 
 memory usage in each setting (e.g., how much memory for parameters, how much for optimizer
 states, etc.).}
 
-TODO
+We are comparing runs without and with optimizer state sharding in the same setup as above, using individual parameter overlap.
+The reported memory peaks are the maxima among both ranks and iterations (excluding the warm-up).
+
+\input{tables/sharded_optim_mem.tex}
+
+\begin{itemize}
+\item Initially, we need memory for the model ($\sim 4 \times 1.44$ GB) plus overhead.  Note that gradients and the optimizer state
+are allocated lazily.
+\item Before the optimizer step, we additionally have the optimizer state ($\sim 4 \times 1.44$ GB sharded or $\sim 8 \times 1.44$ GB unsharded) 
+and some overlap of activations ($batch\_size \times context\_size \times 4 \times 19.7$ MB) and gradients ($\sim 4 \times 1.44$ GB).  The last part is dominated
+by gradients (batch-size independent) for small batches and by activations (batch-size dependent) for large batches.
+\item After the optimizer step, we no longer have activations (i.e. are independent of batch size), and so we hold the model weights, the gradients,
+sharded or unsharded optimizer weights; in addition, temporary allocations for weight updates increase the peak.
+\end{itemize}
 
 \item \textbf{How does our implementation of optimizer state sharding affect training speed?}
 
-TODO
+\input{tables/sharded_optim.tex}
+
+Optimizer state sharding by itself has almost no effect on training speed because the optimization step is relatively fast anyway.  
+The main goal is to decrease the peak memory usage, thus allowing larger microbatches.
 
 \item \textbf{How does our approach to optimizer state sharding differ from ZeRO stage 1 (described as ZeRO-
 DP $P_{os}$ in Rajbhandari et al., 2020)?}

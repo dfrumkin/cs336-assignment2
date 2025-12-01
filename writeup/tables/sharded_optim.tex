@@ -1,0 +1,14 @@
+\begin{table}[H]\centering
+\caption{Optimizer Sharding}
+\begin{tabular}{rll}
+\toprule
+Batch & Not Sharded Opt & Sharded Opt \\
+\midrule
+2 & 275.0 ms & 273.1 ms \\
+4 & 325.1 ms & 327.4 ms \\
+8 & 478.6 ms & 480.9 ms \\
+16 & 788.9 ms & 789.6 ms \\
+32 & 1417.9 ms & 1418.2 ms \\
+\bottomrule
+\end{tabular}
+\end{table}

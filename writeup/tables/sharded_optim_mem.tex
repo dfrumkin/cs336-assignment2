@@ -1,0 +1,14 @@
+\begin{table}[H]\centering
+\caption{Optimizer Sharding - Peak Memory}
+\begin{tabular}{rlll}
+\toprule
+Batch & After Init & Before Optim & After Optim \\
+\midrule
+2 & 7.6 / 7.6 GB & 30.6 / 23.0 GB & 38.2 / 26.8 GB \\
+4 & 7.6 / 7.6 GB & 30.6 / 24.8 GB & 38.1 / 26.7 GB \\
+8 & 7.6 / 7.6 GB & 34.4 / 30.8 GB & 38.1 / 26.7 GB \\
+16 & 7.6 / 7.6 GB & 45.3 / 41.5 GB & 37.7 / 26.4 GB \\
+32 & 7.6 / 7.6 GB & 68.2 / 64.4 GB & 37.6 / 26.5 GB \\
+\bottomrule
+\end{tabular}
+\end{table}
