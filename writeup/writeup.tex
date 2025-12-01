@@ -388,15 +388,26 @@ Comments:
 
 \subsection{A Naïve Implementation of Distributed Data Parallel Training}
 
+\subsubsection*{Problem (naive\_ddp)}
+
 \textbf{Code:} 
 \begin{itemize}
 \item \texttt{cs336\_systems/ddp\_benchmark.py}
 \item \texttt{cs336\_systems/ddp\_benchmark.sh}
+\item \texttt{cs336\_systems/ddp\_benchmark.ipynb}
 \end{itemize}
 
 \subsubsection*{Problem (naive\_ddp\_benchmarking)}
 
-TODO
+All the tests are performed on a 2-GPU H-100 SXM5 instance.  The sequence length is fixed at 256 and the batch size varies from 2
+to the maximum of 32.  
+Computation is not optimized (eager and at float32).  The step would've been more communication-bound with those optimizations.
+There are 5 warmup steps and 10 measurement steps.  For statistics, we take the max over ranks and analyze mean / std over steps.
+
+\input{tables/naive_ddp.tex}
+
+The total step time increases (roughly linearly) with the batch size.  The communication time increases only slightly.
+This is because larger microbatches make training more computation bound.
 
 \subsection{Improving Upon the Minimal DDP Implementation}
 
@@ -404,23 +415,40 @@ TODO
 \begin{itemize}
 \item \texttt{cs336\_systems/ddp\_benchmark.py}
 \item \texttt{cs336\_systems/ddp\_benchmark.sh}
+\item \texttt{cs336\_systems/ddp\_benchmark.ipynb}
 \end{itemize}
 
 \subsubsection*{Problem (minimal\_ddp\_flat\_benchmarking)}
 
-TODO
+\input{tables/flat_ddp.tex}
+
+The batched all-reduce call did not help at all; moreover, having to allocate flat gradient tensors, we ran out of memory with the batch size of 32.
+A 2-GPU H-100 SXM5 instance already handles multiple communication calls very well, but we probably would have seen an improvement if we had used more GPUs
+or a worse interconnect.
 
 \subsubsection*{Problem (ddp\_overlap\_individual\_parameters)}
 
-TODO
+\textbf{Code:} \texttt{cs336\_systems/ddp\_overlap\_individual.py}
 
 \subsubsection*{Problem (ddp\_overlap\_individual\_parameters\_benchmarking)}
 
-TODO
+\begin{enumerate}[label=(\alph*)]
+    \item \textbf{Benchmarking}
+    
+\input{tables/overlap_individual_ddp.tex}
+
+Comparing with the naïve implementation (since the batched all-reduce did not go well), we see that while the overall 
+improvement is small (we are already mostly computation bound), the improvement in the communication overhead is significant.
+
+    \item \textbf{Nsight profiling}
+
+    TODO
+
+\end{enumerate}
 
 \subsubsection*{Problem (ddp\_overlap\_bucketed)}
 
-TODO
+\textbf{Code:} \texttt{cs336\_systems/ddp\_overlap\_bucketed.py}
 
 \subsubsection*{Problem (ddp\_bucketed\_benchmarking)}
 \begin{enumerate}[label=(\alph*)]
@@ -432,7 +460,14 @@ necessary to better understand how communication calls are ordered and/or execut
 changes in the experimental setup would you expect to yield results that are aligned with your
 expectations?}
 
-TODO
+\input{tables/overlap_bucketed_ddp.tex}
+
+While bucketed overlapping is almost always better than the naïve solution, it is almost always worse than individual parameter overlapping.
+As we have seen in the batch vs naïve comparison above, with 2 GPUs and a fast interconnect, having a lot of
+small communication calls does not add too much overhead.  On the other hand, with simple online bucketing, we
+ wait for the bucket to be almost overfilled before synchronizing it, so the last bucket is synchronized at the very end without
+overlapping with communication.  A better solution would be to use intelligent pre-bucketing: assign parameters to buckets on the first 
+pass, have smaller buckets toward the end, and syncronize each bucket as soon as it is full, i.e. gets all the parameters assigned to it.
 
     \item \textbf{Assume that the time it takes to compute the gradients for a bucket is identical to the time it
 takes to communicate the gradient buckets. Write an equation that models the communication
@@ -451,7 +486,7 @@ $T \rightarrow \infty$ when $n_b \rightarrow 0$ or $n_b \rightarrow \infty$; the
 
 $\frac{dT}{dn_b}=0 \Leftrightarrow o - \frac{s}{n_b^2w} = 0 \Leftrightarrow n_b = \sqrt{\frac{s}{ow}}$
 
-Therefore, the optimal batch size is $\frac{s}{\sqrt{\frac{s}{ow}}}$: $\boxed{B = \sqrt{sow}}$.
+Therefore, the optimal bucket size is $\frac{s}{\sqrt{\frac{s}{ow}}}$: $\boxed{B = \sqrt{sow}}$.
 
 \end{enumerate}
 
