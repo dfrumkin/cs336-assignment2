@@ -62,7 +62,7 @@
 your model.}
 
 I used an H-100 via \href{https://lambda.ai/}{lambda.ai} and performed 
-sweeps over (forward or forward-backward, model size, context window size, number of warmup iterations).
+sweeps over forward or forward-backward, model size, context window size, number of warmup iterations.
 Every configuration was a separate process.  For cleaner results, I reset the GPU in the beginning of every run.
 
 \item \textbf{Time the forward and backward passes for the model sizes described in §1.1.2. Use 5 warmup
@@ -123,9 +123,9 @@ pass, computing the loss and running a backward pass, and finally an optimizer s
 during training). How does the fraction of time spent on matrix multiplication change, compared
 to doing inference (forward pass only)? How about other kernels?}
 
-For an xl model with context length 512, during inference, 4 matrix multiplication kernels take about 80\% of the time with the rest going to elementwise (mostly)
-and reduction operations.  Over a training step, there are many more kernels run (including matrix multiplication ones): matrix multiplication still dominates, but newenvironment
-takes only about 60\% of the time, while pointwise operations take a relatively larger share of time.
+For an xl model with context length 512, during inference, 4 matrix multiplication kernels take about 80\% of the time with the rest going to elementwise (most)
+and reduction operations.  Over a training step, there are many more kernels run: matrix multiplication still dominates, 
+but now takes only about 60\% of the time, while pointwise operations take a relatively larger share of time.
 
     \item \textbf{Compare the runtime of the softmax operation versus the matrix multiplication operations within
 the self-attention layer of your model during a forward pass. How does the difference in runtimes
@@ -190,10 +190,11 @@ fourth cases (equivalent: implicit or explicity upcasting to float32) we get onl
 
     \item Parameters and gradients are always in float32 for reasons demonstrated in the previous problem.  
     Activations are computed in float16 for linear layers (fc1, fc2) and relu, but float32 for LayerNorm.
-    Logits are activations of fc2 (float16) and the loss is float32 because it's usually numerically sensitive (MSE, Cross-Entropy), but could in theory be float16 (e.g. if we take the maximum).
+    Logits are activations of fc2 (float16) and the loss is float32 because it's usually numerically sensitive (MSE, Cross-Entropy), 
+    but could in theory be float16, e.g. if we use some primitive loss, such as \texttt{max()}.
 
     \item LayerNorm contains sensitive operations: accumulations (mean, standard deviation), epsilon addition and square root.
-    While bfloat16 would help avoid over- and underflows, it has fewer bits for the mantissa leading to loss in precision.  
+    Compared to float16, bfloat16 would help avoid over- and underflows, but it has fewer bits for the mantissa leading to loss in precision.  
     Therefore, we always use float32 for LayerNorm. In theory, hardware could fuse LayerNorm computations to 
     produce float16/bfloat16 activations, but the benefits would be much smaller than from the fused matmul.
 
@@ -399,15 +400,15 @@ Comments:
 
 \subsubsection*{Problem (naive\_ddp\_benchmarking)}
 
-All the tests are performed on a 2-GPU H-100 SXM5 instance.  The sequence length is fixed at 256 and the batch size varies from 2
+All the tests were performed on a 2-GPU H-100 SXM5 instance.  The sequence length is fixed at 256 and the batch size varies from 2
 to the maximum of 32.  
 Computation is not optimized (eager and at float32).  The step would've been more communication-bound with those optimizations.
 There are 5 warmup steps and 10 measurement steps.  For statistics, we take the max over ranks and analyze mean / std over steps.
 
 \input{tables/naive_ddp.tex}
 
-The total step time increases (roughly linearly) with the batch size.  The communication time increases only slightly.
-This is because larger microbatches make training more computation bound.
+The total step time increases (roughly linearly) with the batch size.  The communication time increases only slightly 
+because larger microbatches make training more computation bound.
 
 \subsection{Improving Upon the Minimal DDP Implementation}
 
@@ -442,11 +443,15 @@ improvement is small (we are already mostly computation bound), the improvement 
 
     \item \textbf{Nsight profiling}
 
+In the naïve implementation, we block for NCCL to complete synchronization.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{images/No_overlap.png}
     \caption{Block for Gradient Synchronization}
 \end{figure}
+
+Below, we clearly see the overlap of NCCL communication kernels with CUDA compute kernels.
 
 \begin{figure}[H]
     \centering
@@ -454,7 +459,6 @@ improvement is small (we are already mostly computation bound), the improvement 
     \caption{Overlap Backward Pass Computation}
 \end{figure}
 
-Here, we clearly see the overlap of NCCL communication kernels with CUDA compute kernels.
 \end{enumerate}
 
 \subsubsection*{Problem (ddp\_overlap\_bucketed)}
@@ -478,7 +482,7 @@ As we have seen in the batch vs naïve comparison above, with 2 GPUs and a fast 
 small communication calls does not add too much overhead.  On the other hand, with simple online bucketing, we
  wait for the bucket to be almost overfilled before synchronizing it, so the last bucket is synchronized at the very end without
 overlapping with communication.  A better solution would be to use intelligent pre-bucketing: assign parameters to buckets on the first 
-pass, have smaller buckets toward the end, and syncronize each bucket as soon as it is full, i.e. gets all the parameters assigned to it.
+pass, have smaller buckets toward the end, and syncronize each bucket as soon as it gets all the parameters assigned to it.
 
     \item \textbf{Assume that the time it takes to compute the gradients for a bucket is identical to the time it
 takes to communicate the gradient buckets. Write an equation that models the communication
@@ -562,10 +566,10 @@ Thus, $\frac{B}{N} > 61.325$.  For the microbatch size of 62, the overall batch 
 compute effectively (in other words we want to never be communication bound).  
 What other tricks can we employ to reduce the batch size of our model but retain high throughput?}
 
-The batch should be large enough to have low noise per step; however, once the noise is low, further increasing the batch size will result in 
+The batch should be large enough to have low noise per step; however, once the noise is low, further increasing the batch size would result in 
 wasteful computation.
 
-$eff\_batch = microbatch \times grad\_acc \times world\_size$.
+$\mathrm{eff\_batch} = \mathrm{microbatch} \times \mathrm{grad\_acc} \times \mathrm{world\_size}$.
 
 To keep the effective batch small while retaining high throughput:
 
@@ -606,7 +610,7 @@ directly after the optimizer step. Do the results align with your expectations? 
 memory usage in each setting (e.g., how much memory for parameters, how much for optimizer
 states, etc.).}
 
-We are comparing runs without and with optimizer state sharding in the same setup as above, using individual parameter overlap.
+We are comparing runs without and with optimizer state sharding in the same setup as above using individual parameter overlap.
 The reported memory peaks are the maxima among both ranks and iterations (excluding the warm-up).
 
 \input{tables/sharded_optim_mem.tex}
