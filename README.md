@@ -1,3 +1,12 @@
+# CS336 Spring 2025 Assignment 2: Systems - Dmitry's Solution
+
+This is my take on assignment 2 of the Spring 2025 version of Stanford's [CS336: Language Modeling from Scratch](https://stanford-cs336.github.io/spring2025/).  
+
+This is a complex assignment covering advanced profiling and benchmarking, a Triton implementation of
+FlashAttention2, and distributed training.  Read my [writeup](./writeup.pdf) together with [the assignment handout](./cs336_spring2025_assignment1_basics.pdf).
+
+Below is the original README...
+
 # CS336 Spring 2025 Assignment 2: Systems
 
 For a full description of the assignment, see the assignment handout at
